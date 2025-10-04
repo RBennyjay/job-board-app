@@ -1,22 +1,16 @@
 {
   "hosting": {
     "public": "public",
-    "headers": [
-      {
-        "source": "**/*.@(js|css|png|jpg|svg)",
-        "headers": [
-          { "key": "Cache-Control", "value": "public,max-age=31536000,immutable" }
-        ]
-      },
-      {
-        "source": "**",
-        "headers": [
-          { "key": "X-Content-Type-Options", "value": "nosniff" }
-        ]
-      }
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
     ],
     "rewrites": [
-      { "source": "**", "destination": "/index.html" }
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
   }
 }

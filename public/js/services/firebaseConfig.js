@@ -7,7 +7,7 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-aut
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCWsRDErv4D4gOKQ_R_xr9MD0xVdPVh5Po",
+  apiKey: "AIzaSyDHWaPvQ83DNjWYoFfEZKGaCI1H3FWz_8g",
   authDomain: "lagos-job-board.firebaseapp.com",
   projectId: "lagos-job-board",
   storageBucket: "lagos-job-board.firebasestorage.app",

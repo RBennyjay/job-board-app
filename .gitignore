@@ -5,3 +5,5 @@ firebase-debug.log
 
 # Node modules (if using a local dev server)
 node_modules
+
+/public/js/services/firebaseConfig.js
