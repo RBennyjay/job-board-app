@@ -1,0 +1,7 @@
+# Firebase
+.firebase
+firebase-debug.log
+.runtimeconfig.json
+
+# Node modules (if using a local dev server)
+node_modules

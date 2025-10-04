@@ -1,0 +1,225 @@
+/* public/css/styles.css */
+
+/* 1. Base Styles (Replacing @tailwind base) */
+:root {
+    /* Define your color palette as CSS variables for easy use */
+    --color-primary: #007BFF;
+    --color-secondary: #28A745;
+    --color-neutral: #F8F9FA;
+    --color-dark: #343A40;
+}
+
+body {
+    min-height: 100vh;
+    background-color: var(--color-neutral);
+    color: var(--color-dark);
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* 2. Custom Components (Standard CSS) */
+
+.app-screen {
+    /* You can still use this class, but the properties are standard CSS */
+    min-height: 100vh;
+    background-color: var(--color-neutral);
+    color: var(--color-dark);
+    font-family: 'Roboto', sans-serif;
+}
+
+.job-card {
+    /* Primary styling */
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    /* Equivalent to border-gray-200 */
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    /* Equivalent to rounded-lg */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    /* Equivalent to shadow-md */
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+}
+
+.job-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    /* Equivalent to shadow-xl */
+    border-color: var(--color-primary);
+}
+
+.btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.3s;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    /* Darker blue */
+}
+
+.page-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.875rem;
+    /* 3xl equivalent */
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--color-dark);
+}
+
+/* --- Job Feed Styles --- */
+
+/* 1. Container for the Job Cards */
+#job-list {
+    /* Use CSS Grid for a responsive column layout */
+    display: grid;
+    /* Default to two columns on larger screens */
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    /* Spacing between cards */
+}
+
+/* Make it responsive for smaller screens (e.g., mobile) */
+@media (max-width: 768px) {
+    #job-list {
+        /* Switch to a single column on mobile */
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+
+/* 2. Styling for the Job Card itself (now an <a> tag) */
+.job-card {
+    /* Critical: Set display property for proper layout */
+    display: block;
+
+    /* Box Styling */
+    background-color: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    /* Light border */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+
+    /* Make the entire card a link, remove default link styles */
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* Hover Effect for better UX */
+.job-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+    border-color: var(--color-primary);
+    /* Use your primary color for a highlight */
+}
+
+/* Ensure the title is well-defined */
+.job-card-title {
+    margin-bottom: 0.5rem;
+    /* Use your defined color variable if available */
+    color: var(--color-dark, #333);
+}
+
+/* --- Global Button Styles --- */
+
+/* Primary Button (e.g., Apply Now, Post a Job) */
+.btn-primary {
+    display: inline-flex;
+    /* Use flex for icon alignment if needed */
+    align-items: center;
+    gap: 0.5rem;
+    /* Space between text and icon */
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    /* Crucial for anchor buttons */
+    color: white;
+    background-color: var(--color-primary, #007bff);
+    /* Fallback blue */
+    border: 1px solid var(--color-primary, #007bff);
+    border-radius: 0.375rem;
+    /* Rounded corners */
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.btn-primary:hover {
+    background-color: var(--color-primary-dark, #0056b3);
+    /* Darker blue on hover */
+    border-color: var(--color-primary-dark, #0056b3);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Secondary Button (for Save Job, Share Link) */
+.btn-secondary {
+    display: inline-flex;
+    /* Use flex for icon alignment */
+    align-items: center;
+    gap: 0.5rem;
+    /* Space between text and icon */
+    padding: 0.75rem 1.25rem;
+    /* Slightly less padding than primary */
+    font-size: 0.95rem;
+    /* Slightly smaller font */
+    font-weight: 500;
+    text-decoration: none;
+    color: var(--color-dark, #333);
+    /* Dark text color */
+    background-color: #f0f2f5;
+    /* Light grey background */
+    border: 1px solid #dcdfe4;
+    /* Light grey border */
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.btn-secondary:hover {
+    background-color: #e2e4e7;
+    /* Slightly darker grey on hover */
+    border-color: #c9ccd0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Specific styling for icon inside buttons */
+.btn-secondary .fas {
+    font-size: 1rem;
+    /* Adjust icon size if necessary */
+}
+
+/* Styles for the button group (Apply, Save, Share) */
+.job-actions {
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    /* Allow wrapping on smaller screens */
+    align-items: center;
+    gap: 1rem;
+    /* Space between buttons */
+}
+
+/* For the Back to Feed link */
+.back-to-feed-link {
+    display: inline-block;
+    margin-top: 1.5rem;
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease-in-out;
+}
+
+.back-to-feed-link:hover {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+}
