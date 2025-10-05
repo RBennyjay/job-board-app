@@ -5,7 +5,7 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebas
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 
-// Your web app's Firebase configuration
+//  web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDHWaPvQ83DNjWYoFfEZKGaCI1H3FWz_8g",
   authDomain: "lagos-job-board.firebaseapp.com",

@@ -2,46 +2,69 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lagos Job Board - Find Your Next Role</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lagos Job Board - Find Your Next Role</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500&display=swap"
-        rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500&display=swap"
+    rel="stylesheet">
 
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-    <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body class="app-screen">
 
-<header id="main-header" style="background-color: white; padding: 1rem; border-bottom: 1px solid #ccc;">
-    <nav style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
-        <a href="#feed" style="text-decoration: none;">
-            <div
-                style="font-size: 1.25rem; font-family: 'Montserrat', sans-serif; font-weight: 700; color: var(--color-primary);">
-                Lagos Job Board</div>
-        </a>
+  <header id="main-header">
+    <div class="header-content-container">
 
-        <div id="nav-links" style="display: flex; align-items: center;">
+      <a href="#feed" class="logo-link">
+        <div class="logo-text">
+          Lagos Job Board
         </div>
+      </a>
 
-        <button id="post-job-nav-btn" class="btn-primary" style="margin-left: 1rem;">Post a Job</button>
-    </nav>
-</header>
+      <nav id="nav-links"></nav>
 
-    <main id="app-container" style="max-width: 1200px; margin: 0 auto; padding: 2rem;"></main>
+      <div class="header-actions">
+        <div id="auth-status-desktop">
+          <button id="google-login-header-btn" class="btn-secondary google-login-btn">
+            <i class="fab fa-google"></i> Sign In
+          </button>
+        </div>
+      
+        <button id="post-job-nav-btn" class="btn-primary desktop-post-btn">Post a Job</button>
+      
+        <button id="menu-btn" class="hamburger-btn">
+          <i class="fas fa-bars fa-lg"></i>
+        </button>
+      </div>
+      </div>
+      
+      <div id="mobile-menu">
+        <div class="mobile-login-container">
+        </div>
+         <nav class="mobile-nav-links"></nav>    
+      
+        <div class="mobile-post-container">
+          <button id="post-job-mobile-btn" class="btn-primary mobile-post-btn">Post a Job</button>
+        </div>
+      </div>
+  </header>
 
-    <footer id="main-footer"
-        style="text-align: center; padding: 1.5rem; font-size: 0.875rem; color: gray; border-top: 1px solid #eee;">
-        <p>&copy; 2025 Lagos Job Board. All rights reserved.</p>
-    </footer>
 
-    <script type="module" src="js/main.js"></script>
+
+  <main id="app-container" style="max-width: 1200px; margin: 0 auto; padding: 2rem;"></main>
+
+  <footer id="main-footer"
+    style="text-align: center; padding: 1.5rem; font-size: 0.875rem; color: gray; border-top: 1px solid #eee;">
+    <p>&copy; 2025 Lagos Job Board. All rights reserved.</p>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
 </body>
 
 </html>

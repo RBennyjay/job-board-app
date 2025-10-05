@@ -1,46 +1,95 @@
-import { auth } from "../services/firebaseConfig.js"; 
+// public/js/modules/authUI.js
 
-// googleLogin is defined and exported in auth.js
-import { googleLogin } from "./auth.js"; 
+import { googleLogin, googleSignOut } from "./auth.js"; 
+
+// Get DOM elements outside the function
+const desktopStatusSlot = document.getElementById('auth-status-desktop');
+const mobileNavLinks = document.querySelector('.mobile-nav-links'); 
+const mobileLoginContainer = document.querySelector('.mobile-login-container'); 
+const desktopNavLinks = document.getElementById('nav-links');
+const menuBtn = document.getElementById("menu-btn");
 
 
 /**
- * Renders the appropriate login or logout button and updates the Post Job button visibility.
+ * Helper function to create the Log Out link element (for NAV MENUS).
+ * This is only used for the mobile menu now.
+ * @param {Function} signOutHandler The function to call on click.
+ * @param {HTMLElement | null} menuButton The mobile menu button to close the menu (only for mobile).
+ * @returns {HTMLElement} The created <a> element.
+ */
+function createLogoutLink(signOutHandler, menuButton) {
+    const link = document.createElement('a');
+    link.id = 'logout-nav-link'; // Unique ID for mobile
+    link.href = '#feed';
+    link.textContent = 'Log Out';
+    
+    // Add event listener
+    link.addEventListener('click', (e) => {
+        e.preventDefault(); 
+        signOutHandler();
+        // Close menu on mobile
+        if (menuButton && menuButton.classList.contains('mobile-menu-open')) {
+            menuButton.click();
+        }
+    });
+    
+    return link;
+}
+
+
+/**
+ * Handles the display of login/logout/user status elements based on authentication state.
  * @param {object | null} user - The current Firebase user object or null if logged out.
  */
 export function updateAuthUI(user) {
 
-    const navLinksContainer = document.getElementById('nav-links');
-    const postJobButton = document.getElementById('post-job-nav-btn');
-    
-    // Check if elements exist before proceeding (good practice)
-    if (!navLinksContainer || !postJobButton) {
-        console.error("Auth UI failed to find required DOM elements (#nav-links or #post-job-nav-btn).");
-        return; 
+    // Clean up any previously injected logout elements
+    const existingMobileLogout = document.getElementById('logout-nav-link');
+    if (existingMobileLogout) {
+        existingMobileLogout.remove();
     }
+    
+        
+    // Ensure the unused mobile login container is hidden
+    mobileLoginContainer.style.display = 'none';
 
     if (user) {
-        // User is logged in: Show Logout/Profile
-        navLinksContainer.innerHTML = `
-            <span style="margin-right: 1rem; color: #555;">Hello, ${user.displayName || user.email}</span>
-            <button id="logout-btn" class="btn-primary" style="background-color: #dc3545;">Logout</button>
-        `;
-        // Make the Post Job button active
-        postJobButton.style.display = 'block'; 
+        // --- LOGGED IN: Log Out in Header (Desktop ONLY) & Log Out in Mobile Menu ---
         
-        document.getElementById('logout-btn').addEventListener('click', () => {
-            auth.signOut();
-            window.location.hash = '#feed'; // Redirect to feed on logout
-        });
+        const userName = user.displayName ? user.displayName.split(' ')[0] : 'User';
+
+        // 1.  Avatar, Greeting, AND Log Out Button (Header Log Out hidden on mobile via CSS)
+        desktopStatusSlot.innerHTML = `
+            <div id="user-status-container" class="user-profile-status">
+                <div id="avatar-icon" class="mobile-user-avatar" title="${user.displayName || 'User'}">
+                    <i class="fas fa-user"></i>
+                </div>
+                <span class="desktop-greeting">Hi, ${userName}!</span>
+            </div>
+            <button id="logout-header-btn" class="btn-secondary">Log Out</button>
+        `;
+        
+        // 2.  Inject Log Out Link into the mobile-nav-links list
+        const mobileLogoutLink = createLogoutLink(googleSignOut, menuBtn);
+        mobileNavLinks.appendChild(mobileLogoutLink);
+
+       
+
+        // 4. Attach Header Log Out listener
+        document.getElementById('logout-header-btn').addEventListener('click', googleSignOut);
+
 
     } else {
-        // User is logged out: Show Login
-        navLinksContainer.innerHTML = `
-            <button id="login-btn" class="btn-primary">Login with Google</button>
+        // --- LOGGED OUT: Show Sign In Button in Header ---
+
+        // 1. Restore Sign In Button (Visible on both mobile and desktop)
+        desktopStatusSlot.innerHTML = `
+            <button id="google-login-header-btn" class="btn-secondary google-login-btn">
+                 <i class="fab fa-google"></i> Sign In
+            </button>
         `;
-        // Hide or style the Post Job button to indicate login is required
-        postJobButton.style.display = 'none'; 
         
-        document.getElementById('login-btn').addEventListener('click', googleLogin);
+        // 2. Attach Sign In listener to the header button
+        document.getElementById('google-login-header-btn').addEventListener('click', googleLogin);
     }
 }
