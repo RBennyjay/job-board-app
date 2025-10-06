@@ -48,10 +48,10 @@ body {
 }
 
 .header-actions {
-   
+
     display: flex;
     align-items: center;
- 
+
     gap: 1rem;
 }
 
@@ -116,21 +116,22 @@ body {
 .user-logged-in-mobile p {
     margin: 0;
     font-size: 0.9rem;
-   
+
 }
 
 .user-logged-in-mobile {
-    padding: 0.05rem 1rem;   
+    padding: 0.05rem 1rem;
     font-weight: 600;
     color: var(--color-dark);
 }
 
-/*  Mobile Post Job Button Container */
+/* Mobile Post Job Button Container */
 .mobile-post-container {
     padding: 0.1rem 1rem 0.1rem 1rem;
- 
+
     border-bottom: 1px solid #eee;
 }
+
 /* Style for the Post Job button inside the mobile menu (full width) */
 .mobile-post-container .btn-primary {
     width: 100%;
@@ -141,6 +142,7 @@ body {
     justify-content: center;
     margin: 0;
 }
+
 /* Desktop User Status (For Avatar/Greeting/Logout) */
 .user-profile-status {
     display: flex;
@@ -155,7 +157,7 @@ body {
     padding: 0.5rem 1rem;
 }
 
-/*  Mobile Header User Avatar (When logged in) */
+/* Mobile Header User Avatar (When logged in) */
 .mobile-user-avatar {
     width: 32px;
     height: 32px;
@@ -278,11 +280,11 @@ body {
     align-items: center;
     gap: 0;
     padding: 0.1rem 0;
- 
+
     border-bottom: 1px solid #eee;
 }
 
-/*  Reduced vertical padding on each link item */
+/* Reduced vertical padding on each link item */
 .mobile-nav-links a {
     width: 90%;
     max-width: 300px;
@@ -296,13 +298,14 @@ body {
     border-radius: 4px;
     transition: background-color 0.2s;
 }
-/*  Mobile Active Link Wayfinding */
+
+/* Mobile Active Link Wayfinding */
 .mobile-nav-links .nav-active {
     background-color: var(--color-neutral);
-   
+
     font-weight: 700 !important;
     color: var(--color-primary) !important;
-    
+
 }
 
 /* Ensure the Logout link injected by JS also centers and has specific style */
@@ -314,10 +317,10 @@ body {
 
 /* Mobile (≤768px) */
 @media (max-width: 768px) {
-    
+
     #nav-links,
     .desktop-post-btn {
-    display: none !important;     
+        display: none !important;
     }
 
     .mobile-nav-links .nav-active::after {
@@ -332,9 +335,9 @@ body {
     #auth-status-desktop {
         display: flex !important;
         align-items: center;
-   
+
         gap: 0.5rem;
-   
+
         margin-right: 0.5rem;
     }
 
@@ -352,14 +355,14 @@ body {
 /* Desktop (≥769px) */
 @media (min-width: 769px) {
 
- 
+
     #nav-links {
         display: flex !important;
         align-items: center;
         gap: 1.5rem;
     }
 
-    /*  Show the Desktop Auth Status slot (Sign In button or Avatar) */
+    /* Show the Desktop Auth Status slot (Sign In button or Avatar) */
     #auth-status-desktop {
         display: flex !important;
         align-items: center;
@@ -383,65 +386,126 @@ body {
     }
 }
 
+
 /* ====================================================================
-   4. JOB CARD GRID
+   4. JOB CARD GRID (4 per row + equal height + fully responsive)
    ==================================================================== */
 #job-list {
     display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
-    grid-template-columns: 1fr;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    box-sizing: border-box;
 }
 
-@media (min-width: 600px) {
-    #job-list {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (min-width: 992px) {
-    #job-list {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-@media (min-width: 1200px) {
-    #job-list {
-        grid-template-columns: repeat(4, 1fr);
-    }
-}
-
+/* Each Job Card */
 .job-card {
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
     height: 100%;
     background-color: var(--color-surface);
-    padding: 1.5rem;
+    padding: 1rem;
     border-radius: 8px;
     border: 1px solid #e9ecef;
+    border-left: 5px solid var(--color-primary);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     text-decoration: none;
     color: inherit;
-    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .job-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
     border-color: var(--color-primary);
 }
 
+/* Title */
 .job-card-title {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: var(--color-dark);
     margin-bottom: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; 
+     
 }
 
+/* Info text below title */
 .job-card-info {
     font-size: 0.95rem;
     color: var(--color-text-secondary);
-    margin-bottom: 0.75rem;
-    flex-grow: 1;
+    margin-bottom: 0.75rem;   
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+     overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Key Data Row (e.g., location, salary, category) */
+.job-card .key-data-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.job-card .key-data-row span {
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.job-card-see-more {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    cursor: pointer;
+    margin-top: 0.5rem;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.job-card-see-more:hover {
+    text-decoration: underline;
+}
+
+/* Tags section */
+.job-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.job-card-tags span {
+    background-color: #f0f4f8;
+    color: var(--color-dark);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Footer area (date, view link, etc.) */
+.job-card>div:last-child {
+    margin-top: auto;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f4f4f4;
 }
 
 .job-card-link {
@@ -453,6 +517,31 @@ body {
 .job-card-link:hover {
     color: var(--color-primary-dark);
     text-decoration: underline;
+}
+
+/* =============================================
+   RESPONSIVE BEHAVIOR
+   ============================================= */
+@media (max-width: 992px) {
+    #job-list {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.25rem;
+    }
+}
+
+@media (max-width: 768px) {
+    #job-list {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    #job-list {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
 }
 
 /* ====================================================================
@@ -475,7 +564,7 @@ body {
     border-top: 1px solid #eee;
 }
 
-/* optimization style */
+
 
 /* ============================================
    MOBILE MENU COMPACT LAYOUT FIX
@@ -484,15 +573,14 @@ body {
 /* Reduce spacing between each link */
 .mobile-nav-links {
     padding: 0.1rem 0 !important;
-    gap: 0 !important;   
+    gap: 0 !important;
     border-bottom: none !important;
 }
 
 /* Shrink each menu item’s container and padding */
 .mobile-nav-links a {
     display: block;
-    padding: 0.2rem 0.5rem !important;
-    /* Reduced from 0.1–0.15rem */
+    padding: 0.2rem 0.5rem !important; 
     margin: 0 !important;
     font-size: 0.9rem !important;
     line-height: 1.1 !important;
@@ -517,8 +605,7 @@ body {
 
 /* Reduce overall dropdown impact */
 #mobile-menu {
-    max-height: 28vh !important;
-    /* Even smaller than 1/3 screen */
+    max-height: 28vh !important;  
     overflow-y: auto;
 }
 
@@ -530,3 +617,127 @@ body {
 
 }
 
+
+
+/* ====================================================================
+   6. FORM STYLES (Job Posting Form)
+   ==================================================================== */
+
+.content-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.form-card {
+    background-color: var(--color-surface);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    max-width: 800px;   
+    margin: 0 auto 2rem auto;
+}
+
+.form-section {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 1.5rem 1rem 1rem 1rem;
+    margin-bottom: 2rem;
+}
+
+.form-section legend {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    padding: 0 0.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+/* Labels and Required Indicator */
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--color-dark);
+}
+
+.form-group .required {
+    color: #dc3545;
+    /* Red for required fields */
+    font-weight: 700;
+}
+
+/* Input/Select/Textarea Styling */
+input[type="text"],
+select,
+textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;   
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 0.2rem rgba(26, 115, 232, 0.25);
+    outline: none;
+}
+
+textarea {
+    resize: vertical;
+    /* Allow vertical resizing only */
+}
+
+.help-text {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+}
+
+.form-actions {
+    text-align: right;
+    padding-top: 1rem;
+}
+
+/* Responsive Grid for Form Fields (e.g., Location & Salary side-by-side) */
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    /* Space between columns */
+}
+
+.form-row .half-width {
+    flex: 1 1 calc(50% - 0.5rem);
+    /* Two columns */
+}
+
+.form-row .full-width {
+    flex: 1 1 100%;
+}
+
+/* Mobile Responsiveness for Form */
+@media (max-width: 600px) {
+    .form-card {
+        padding: 1rem;
+    }
+
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .form-row .half-width {
+        flex: 1 1 100%;
+        /* Stack columns on small screens */
+    }
+}

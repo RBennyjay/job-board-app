@@ -1,3 +1,5 @@
+// public/js/modules/jobPostForm.js
+
 import { addJob } from "../services/firebaseService.js";
 import { auth } from "../services/firebaseConfig.js"; 
 import { renderJobFeed } from "./jobFeed.js"; // To refresh the feed after posting
@@ -17,86 +19,156 @@ async function handlePostSubmit(e, container) {
         return;
     }
 
-    const jobData = {
-        title: form.title.value.trim(),
-        company: form.company.value.trim(),
-        location: form.location.value.trim(),
-        description: form.description.value.trim(),
-        salary: form.salary.value.trim(),
-        category: form.category.value,
-    };
-
-    if (!jobData.title || !jobData.description) {
-        alert("Please fill in all required fields (Title and Description).");
+    // --- FORM VALIDATION (Required Fields) ---
+    const title = form.title.value.trim();
+    const description = form.description.value.trim();
+    const applicationLink = form.applicationLink.value.trim(); 
+    const applicationEmail = form.applicationEmail.value.trim(); 
+    
+    // Basic fields check (original logic)
+    if (!title || !description || !form.company.value.trim() || !form.location.value.trim() || !form.category.value) {
+        alert("Please fill in all required fields (marked with *).");
+        return;
+    }
+    
+    //  NEW VALIDATION: Must provide an application method
+    if (!applicationLink && !applicationEmail) {
+        alert("Please provide either an Application Link or an Application Email.");
         return;
     }
 
+    // --- Process Tags/Skills: Convert comma-separated string to array ---
+    const rawTags = form.tags.value.trim();
+    const tagsArray = rawTags 
+        ? rawTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) 
+        : [];
+
+    const jobData = {
+        title: title,
+        company: form.company.value.trim(),
+        location: form.location.value.trim(),
+        description: description,
+        salary: form.salary.value.trim() || 'Competitive',
+        category: form.category.value,
+        tags: tagsArray,
+        //  NEW FIELDS ADDED HERE:
+        applicationLink: applicationLink || null, // Store null if empty
+        applicationEmail: applicationEmail || null, // Store null if empty
+        // End of new fields
+        postedAt: new Date(),
+        posterUid: auth.currentUser.uid,
+    };
+
     try {
-        form.querySelector('button[type="submit"]').textContent = "Posting...";
-        form.querySelector('button[type="submit"]').disabled = true;
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.textContent = "Posting...";
+        submitButton.disabled = true;
 
         await addJob(jobData);
         alert(`Successfully posted job: ${jobData.title}`);
 
-        // Navigate back to the Job Feed and display the new job
+        window.location.hash = '#feed'; // Use hash navigation
         renderJobFeed(container);
 
     } catch (error) {
         console.error("Error posting job:", error);
         alert("An error occurred while posting the job. See console for details.");
     } finally {
-        form.querySelector('button[type="submit"]').textContent = "Post Job";
-        form.querySelector('button[type="submit"]').disabled = false;
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.textContent = "Post Job";
+        submitButton.disabled = false;
     }
 }
 
 /**
- * Renders the Job Posting Form component.
+ * Renders the Job Posting Form component, using external CSS classes.
  * @param {HTMLElement} containerElement - The DOM element to render into.
  */
 export function renderJobPostForm(containerElement) {
+    // Inject the structured HTML, relying on the 'form-card' and 'form-group' classes for styling
     containerElement.innerHTML = `
-        <h1 class="page-title">Post a New Opportunity</h1>
-        <div style="max-width: 600px; margin: 0 auto; padding: 2rem; background-color: white; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <form id="job-post-form" action="#">
-                <div style="margin-bottom: 1rem;">
-                    <label for="title" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Job Title <span style="color: red;">*</span></label>
-                    <input type="text" id="title" name="title" required style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 0.25rem;">
-                </div>
+        <section id="post-job-page" class="content-container">
+            <h1 class="page-title">Post a New Job Opportunity</h1>
+            
+            <form id="job-post-form" class="form-card">
+                
+                <fieldset class="form-section">
+                    <legend>Basic Job Information</legend>
+                    
+                    <div class="form-group">
+                        <label for="title">Job Title <span class="required">*</span></label>
+                        <input type="text" id="title" name="title" required placeholder="e.g., Senior Frontend Developer">
+                    </div>
 
-                <div style="margin-bottom: 1rem;">
-                    <label for="company" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Company Name</label>
-                    <input type="text" id="company" name="company" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 0.25rem;">
+                    <div class="form-group">
+                        <label for="company">Company Name <span class="required">*</span></label>
+                        <input type="text" id="company" name="company" required placeholder="e.g., Google or Confidential">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="category">Category <span class="required">*</span></label>
+                        <select id="category" name="category" required>
+                            <option value="">Select a Category</option>
+                            <option value="IT">Information Technology</option>
+                            <option value="Finance">Finance & Accounting</option>
+                            <option value="Marketing">Marketing & Sales</option>
+                            <option value="HR">Human Resources</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </fieldset>
+
+                <fieldset class="form-section">
+                    <legend>Job Details</legend>
+                    
+                    <div class="form-group">
+                        <label for="description">Job Description <span class="required">*</span></label>
+                        <textarea id="description" name="description" rows="10" required placeholder="Describe the role, responsibilities, and qualifications."></textarea>
+                    </div>
+                </fieldset>
+                
+                <fieldset class="form-section form-row">
+                    <legend>Location & Compensation</legend>
+                    
+                    <div class="form-group half-width">
+                        <label for="location">Location <span class="required">*</span></label>
+                        <input type="text" id="location" name="location" required placeholder="e.g., Lagos, Nigeria (Remote)">
+                    </div>
+                    
+                    <div class="form-group half-width">
+                        <label for="salary">Salary Range</label>
+                        <input type="text" id="salary" name="salary" placeholder="e.g., ₦150,000 - ₦200,000 / month">
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label for="tags">Required Tags / Skills</label>
+                        <input type="text" id="tags" name="tags" placeholder="e.g., JavaScript, Firebase, React (Separate with commas)">
+                        <small class="help-text">Separate tags or skills with a comma (e.g., CSS, SQL, Management).</small>
+                    </div>
+                </fieldset>
+                
+                <fieldset class="form-section">
+                    <legend>Application Method</legend>
+                    
+                    <div class="form-group">
+                        <label>Application Link</label>
+                        <input type="url" id="applicationLink" name="applicationLink" placeholder="Enter a direct application URL (e.g., https://careers.company.com/apply)">
+                        <small class="help-text">Provide *either* an Application Link OR an Email.</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Application Email</label>
+                        <input type="email" id="applicationEmail" name="applicationEmail" placeholder="Enter an application email address (e.g., hr@company.com)">
+                    </div>
+                </fieldset>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary" id="submit-job-btn">
+                        <i class="fas fa-paper-plane"></i> Post Job
+                    </button>
                 </div>
                 
-                <div style="margin-bottom: 1rem;">
-                    <label for="location" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Location (e.g., Lagos, Remote)</label>
-                    <input type="text" id="location" name="location" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 0.25rem;">
-                </div>
-                
-                <div style="margin-bottom: 1rem;">
-                    <label for="category" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Category</label>
-                    <select id="category" name="category" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 0.25rem;">
-                        <option value="frontend">Frontend Development</option>
-                        <option value="backend">Backend Development</option>
-                        <option value="product">Product Management</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                
-                <div style="margin-bottom: 1rem;">
-                    <label for="salary" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Salary Range</label>
-                    <input type="text" id="salary" name="salary" placeholder="e.g., NGN 500,000 - 800,000 / month" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 0.25rem;">
-                </div>
-
-                <div style="margin-bottom: 1.5rem;">
-                    <label for="description" style="display: block; font-weight: 500; margin-bottom: 0.5rem;">Job Description <span style="color: red;">*</span></label>
-                    <textarea id="description" name="description" rows="6" required style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 0.25rem;"></textarea>
-                </div>
-
-                <button type="submit" class="btn-primary" style="width: 100%;">Post Job</button>
             </form>
-        </div>
+        </section>
     `;
     
     // Attach the event listener to the form

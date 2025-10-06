@@ -1,8 +1,35 @@
 // public/js/modules/jobDetails.js
 
-//  Add necessary imports for Auth and the new Favorites Service functions
+//  Add  imports for Auth and the new Favorites Service functions
 import { getJobById, isJobSaved, saveJob, unsaveJob } from "../services/firebaseService.js";
 import { auth } from "../services/firebaseConfig.js"; 
+
+
+/**
+ * Helper to render tags/skills as styled badges for the details page.
+ * @param {Array<string>} tags - Array of skill tags.
+ * @returns {string} HTML string of tag badges.
+ */
+function renderDetailTags(tags) {
+    if (!tags || tags.length === 0) return '<p style="color: gray;">No specific skills listed by the poster.</p>';
+    
+    // Using inline styles for quick implementation, considering moving these to styles.css
+    return `
+        <div class="job-detail-skills" style="display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; margin-bottom: 2rem;">
+            ${tags.map(tag => `
+                <span style="
+                    background-color: var(--color-neutral, #f0f4f8); 
+                    color: var(--color-dark); 
+                    padding: 0.5rem 1rem;
+                    border-radius: 6px;
+                    border: 1px solid #e0e0e0;
+                    font-size: 0.9rem;
+                    font-weight: 500;
+                ">${tag}</span>
+            `).join('')}
+        </div>
+    `;
+}
 
 
 /**
@@ -18,13 +45,29 @@ export async function renderJobDetails(containerElement, jobId) {
 
         if (!job) {
             containerElement.innerHTML = `<h1 class="page-title">Job Not Found</h1>
-                                          <p style="padding: 1rem; color: gray;">The requested job posting does not exist.</p>`;
+                                         <p style="padding: 1rem; color: gray;">The requested job posting does not exist.</p>`;
             return;
         }
+        
+        // 🚨 Application Button Logic
+        const applicationLink = job.applicationLink;
+        const applicationEmail = job.applicationEmail;
+        let applyButtonHTML;
 
+        if (applicationLink) {
+            applyButtonHTML = `<a href="${applicationLink}" target="_blank" rel="noopener noreferrer" class="btn-primary" style="margin-right: 1rem;">Apply on Company Site</a>`;
+        } else if (applicationEmail) {
+            applyButtonHTML = `<a href="mailto:${applicationEmail}" class="btn-primary" style="margin-right: 1rem;">Apply via Email</a>`;
+        } else {
+            applyButtonHTML = `<button class="btn-primary" disabled>Application Details Not Provided</button>`;
+        }
+        
+        //  Render Tags
+        const skillsHTML = renderDetailTags(job.tags);
+        
         // Render the detailed job content
         containerElement.innerHTML = `
-            <div style="max-width: 800px; margin: 0 auto;">
+            <div style="max-width: 800px; margin: 0 auto; padding-top: 1.5rem;">
                 <h1 class="page-title" style="margin-bottom: 0;">${job.title}</h1>
                 <p style="font-size: 1.1rem; color: #555; margin-bottom: 0.5rem;">${job.company || 'Confidential'}</p>
                 
@@ -36,10 +79,13 @@ export async function renderJobDetails(containerElement, jobId) {
 
                 <div style="background-color: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem;">Description</h2>
-                    <p style="white-space: pre-wrap; line-height: 1.6;">${job.description}</p>
+                    <p style="white-space: pre-wrap; line-height: 1.6; margin-bottom: 2rem;">${job.description || 'No detailed description available.'}</p>
                     
-                    <div class="job-actions">
-                        <a href="mailto:HR@example.com" class="btn-primary">Apply Now</a>
+                    <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem;">Required Skills</h2>
+                    ${skillsHTML}
+                    
+                    <div class="job-actions" style="margin-top: 3rem; border-top: 1px solid #eee; padding-top: 2rem; display: flex; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        ${applyButtonHTML}
                         
                         <button id="save-job-btn" data-job-id="${job.id}" class="btn-secondary">
                             <i class="fas fa-bookmark"></i> Save Job
@@ -50,22 +96,21 @@ export async function renderJobDetails(containerElement, jobId) {
                         </button>
                     </div>
                     
-                    <a href="#feed" class="back-to-feed-link">← Back to Job Feed</a>
+                    <a href="#feed" class="back-to-feed-link" style="display: block; margin-top: 1.5rem; text-align: center;">← Back to Job Feed</a>
                 </div>
             </div>
         `;
 
-        //  CALL SETUP FUNCTIONS HERE (after HTML is in the DOM)
+        //  CALL SETUP FUNCTIONS HERE (after HTML is in the DOM)
         setupShareButton(job.title, job.id);
         setupSaveButton(job.id); 
 
     } catch (error) {
         console.error("Error fetching job details:", error);
         containerElement.innerHTML = `<h1 class="page-title">Error</h1>
-                                      <p style="color: red; padding: 1rem;">Could not load job details.</p>`;
+                                     <p style="color: red; padding: 1rem;">Could not load job details. Check console for details.</p>`;
     }
 }
-
 
 // -----------------------------------------------------------
 // --- Helper Functions  ---

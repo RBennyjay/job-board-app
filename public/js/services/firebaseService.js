@@ -4,7 +4,9 @@ import { auth } from "./firebaseConfig.js"; // Import the initialized auth objec
 
 import { 
     collection, addDoc, serverTimestamp, doc, setDoc, getDocs, getDoc, 
-    deleteDoc 
+    deleteDoc,
+    //  NEW IMPORTS for Querying
+    query, where, orderBy 
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 
@@ -22,8 +24,10 @@ export async function saveUserProfile(user) {
 
 // --- Job Data Services ---
 
+
 // Function to add a new job posting
 export async function addJob(jobData) {
+    // jobData now includes applicationLink and applicationEmail
     const docRef = await addDoc(collection(db, "jobs"), {
         ...jobData,
         createdAt: serverTimestamp(),
@@ -35,11 +39,47 @@ export async function addJob(jobData) {
 
 // Function to fetch all job postings (for the main feed)
 export async function getAllJobs() {
-    const snapshot = await getDocs(collection(db, "jobs"));
+    //  Added ordering by createdAt to show newest jobs first by default
+    const jobsCollection = collection(db, "jobs");
+    const q = query(jobsCollection, orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
-//  Fetch a single job posting by ID (for the details page)
+//   Executes a search query on the 'title' field
+export async function searchJobs(searchTerm) {
+    const jobsCollection = collection(db, "jobs");
+    const term = searchTerm.toLowerCase();
+    
+    // Firestore only supports prefix search efficiently. We'll search by title.
+    const startAt = term;
+    const endAt = term + '\uf8ff'; // Unicode character for upper bound of a string
+
+    try {
+        const q = query(
+            jobsCollection,
+            //  create a Firestore index for 'title' and 'createdAt' for this query to work.
+            where("title", ">=", startAt),
+            where("title", "<=", endAt),
+            orderBy("title"),
+            orderBy("createdAt", "desc") // Show newest search results first
+        );
+
+        const querySnapshot = await getDocs(q);
+        
+        return querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+    } catch (error) {
+        console.error("Error searching jobs in Firestore:", error);
+        // If an index error occurs, the Firebase console will provide a direct link to create the index.
+        throw error;
+    }
+}
+
+// Fetch a single job posting by ID (for the details page)
 export async function getJobById(id) {
     const docRef = doc(db, "jobs", id);
     const docSnap = await getDoc(docRef);
