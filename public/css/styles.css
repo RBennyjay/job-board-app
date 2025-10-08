@@ -135,7 +135,6 @@ body {
 /* Style for the Post Job button inside the mobile menu (full width) */
 .mobile-post-container .btn-primary {
     width: 100%;
-
     padding: 0.3rem 1rem;
     font-size: 0.8rem;
     display: flex;
@@ -273,7 +272,6 @@ body {
    ==================================================================== */
 
 
-
 .mobile-nav-links {
     display: flex;
     flex-direction: column;
@@ -335,9 +333,7 @@ body {
     #auth-status-desktop {
         display: flex !important;
         align-items: center;
-
         gap: 0.5rem;
-
         margin-right: 0.5rem;
     }
 
@@ -360,7 +356,10 @@ body {
         display: flex !important;
         align-items: center;
         gap: 1.5rem;
+
+        
     }
+    
 
     /* Show the Desktop Auth Status slot (Sign In button or Avatar) */
     #auth-status-desktop {
@@ -371,14 +370,15 @@ body {
 
     /* Show the Desktop Post button */
     .desktop-post-btn {
-        display: block !important;
+        /* display: block !important; */
+        display: inline-flex;
     }
 
     /* Hide mobile specific elements */
     .hamburger-btn,
     #mobile-menu,
     .mobile-login-container {
-        display: none !important;
+    display: none !important;
     }
 
     .content-pushed {
@@ -665,8 +665,7 @@ body {
 }
 
 .form-group .required {
-    color: #dc3545;
-    /* Red for required fields */
+    color: #dc3545;  
     font-weight: 700;
 }
 
@@ -740,4 +739,63 @@ textarea {
         flex: 1 1 100%;
         /* Stack columns on small screens */
     }
+}
+
+
+
+
+/* Custom Mapbox Marker Style */
+.marker {
+    display: block;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+    /* Basic style—you can use a background image or icon */
+    background-color: #007bff;
+    /* Blue pin */
+    width: 15px;
+    height: 15px;
+    border: 3px solid #ffffff;
+    /* White border */
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Style for the active/hovered job card */
+.job-card-active {
+    border-color: #007bff;
+    /* Match the pin color */
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    transform: translateY(-2px);
+    transition: all 0.2s ease-in-out;
+}
+
+/* In your styles.css */
+.mobile-nav-links .mobile-nav-link-button {
+    /* Styles to make it look like a link/menu item */
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 1rem 1.5rem;
+    /* Match the padding of other mobile links */
+    border: none;
+    background: none;
+    color: var(--color-dark);
+    /* Match text color */
+    font-family: inherit;
+    font-size: 1.1rem;
+    /* Match font size */
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.mobile-nav-links .mobile-nav-link-button:hover {
+    background-color: var(--color-neutral, #f0f4f8);
+    /* Hover effect */
+}
+
+/* Ensure the icon is visible */
+.mobile-nav-links .mobile-nav-link-button i {
+    margin-right: 0.5rem;
 }

@@ -183,7 +183,7 @@ function openFallbackShareModal(title, url) {
                 }
                 .share-links a:hover { opacity: 0.8; }
                 .whatsapp { background-color: #0be075ff; }
-                .X-twitter { background-color: #000000 }
+                .twitter { background-color: #000000 }
                 .linkedin { background-color: #0A66C2 }
                 .facebook { background-color: #0866FF }
                 .email { background-color: #777; }

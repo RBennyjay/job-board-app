@@ -1,14 +1,26 @@
 // public/js/modules/jobFeed.js
 
-//   Import the new searchJobs function
-import { setupFilterControls } from "./filterControls.js"; 
+// Import all required functions from firebaseService and mapIntegration
+import { setupFilterControls, applyFilters } from "./filterControls.js"; // 🚨 ADDED applyFilters
 import { getAllJobs, searchJobs } from "../services/firebaseService.js";
+import { 
+    initializeMap, 
+    highlightJobCard, 
+    flyToJobLocation, 
+    getCurrentLocation, 
+    filterCenter, // Imported for direct state update
+    currentRadius // Imported for direct state update
+} from "./mapIntegration.js"; 
+
+// A variable to store the Mapbox map instance for easy access in listeners
+let mapInstance;
+
+// -----------------------------------------------------------
+// --- JOB CARD HELPERS ---
+// -----------------------------------------------------------
 
 /**
  * Helper to truncate the job description for a short summary on the card.
- * @param {string} description - The full job description text.
- * @param {number} maxWords - Maximum number of words to display.
- * @returns {string} The truncated description followed by "..." if truncated.
  */
 function truncateDescription(description, maxWords = 15) {
     if (!description) return 'No description provided.';
@@ -20,49 +32,24 @@ function truncateDescription(description, maxWords = 15) {
 }
 
 /**
- * Helper to render tags as styled badges, using external CSS classes.
- * @param {Array<string>} tags - Array of skill tags.
- * @returns {string} HTML string of tag badges.
- */
-function renderTags(tags) {
-    if (!tags || tags.length === 0) return '';
-    
-    // Limits the display to the first 3 tags for visual cleanliness on the card
-    const displayTags = tags.slice(0, 3); 
-    
-    return `
-        <div class="job-card-tags">
-            ${displayTags.map(tag => `
-                <span>${tag}</span>
-            `).join('')}
-            ${tags.length > 3 ? '<span class="tag-more">+ more</span>' : ''}
-        </div>
-    `;
-}
-
-/**
- * Creates the HTML string for a single Job Card, now showing a description summary.
- * 🚨 EXPORTED for use by filterControls.js
- * @param {object} job - The job data object, including description, tags, category, and salary.
- * @returns {string} The HTML string.
+ * Creates the HTML string for a single Job Card.
  */
 export function createJobCardHTML(job) {
-    // Safely extract all fields
     const location = job.location || 'N/A';
     const companyName = job.company || 'Confidential';
     const category = job.category || 'General';
     const salary = job.salary || 'Competitive';
-    
-    //  Get the truncated description for the card summary
     const summary = truncateDescription(job.description);
-
-    // Safely get and format the date
     const date = job.postedAt && job.postedAt.toDate ? 
                  job.postedAt.toDate().toLocaleDateString() : 
                  'Unknown Date';
 
     return `
-        <a href="#details/${job.id}" class="job-card"> 
+        <a href="#details/${job.id}" 
+           class="job-card" 
+           id="job-card-${job.id}" 
+           data-job-id="${job.id}"> 
+            
             <h3 class="job-card-title">${job.title}</h3>
             <p class="job-card-info">${companyName}</p>
             
@@ -81,7 +68,7 @@ export function createJobCardHTML(job) {
         </a> 
     `;
 }
-
+    
 // -----------------------------------------------------------
 // --- SEARCH LISTENER FUNCTION ---
 // -----------------------------------------------------------
@@ -93,59 +80,89 @@ function setupSearchListener() {
     let timeoutId;
     
     searchInput.addEventListener('input', async (e) => {
-        // 🚨 FIX 1: Normalize the input term once at the start
         const rawQueryTerm = e.target.value.trim();
-        const normalizedQueryTerm = rawQueryTerm.toLowerCase(); // Now lowercase for consistency
+        const normalizedQueryTerm = rawQueryTerm.toLowerCase(); 
         
         const jobListContainer = document.getElementById('job-list');
 
         clearTimeout(timeoutId);
 
         timeoutId = setTimeout(async () => {
-            
-            jobListContainer.innerHTML = '<p style="text-align: center; padding: 2rem;">Searching jobs...</p>';
-
-            try {
-                let jobs;
-                if (normalizedQueryTerm === "") {
-                    jobs = await getAllJobs(); 
-                } else {
-                    // 🚨 FIX 2: Pass the normalized term to searchJobs
-                    jobs = await searchJobs(normalizedQueryTerm); 
-                    
-                    if (jobs.length === 0) {
-                        const allJobs = await getAllJobs();
-                        jobs = allJobs.filter(job => 
-                            // 🚨 FIX 3: Include the job title check in the client-side fallback
-                            job.title.toLowerCase().includes(normalizedQueryTerm) ||
-                            job.company.toLowerCase().includes(normalizedQueryTerm) ||
-                            job.location.toLowerCase().includes(normalizedQueryTerm)
-                        );
-                    }
-                }
-                
-                // Re-render the filtered list
-                if (jobs.length === 0) {
-                    jobListContainer.innerHTML = '<p style="text-align: center; padding: 2rem; color: gray;">No results found for your search criteria.</p>';
-                } else {
-                    const jobCardsHTML = jobs.map(createJobCardHTML).join('');
-                    jobListContainer.innerHTML = jobCardsHTML;
-                }
-
-            } catch (error) {
-                console.error("Error during search filtering:", error);
-                jobListContainer.innerHTML = `<p style="color: red; padding: 2rem;">Error executing search. Please check your Firestore security rules and indexes.</p>`;
-            }
+            // Re-run applyFilters to ensure all current filters (including radius) are honored
+            // For now, we'll let applyFilters handle the list update to simplify logic, 
+            // but in a production app, the search and filters should be synchronized better.
+            applyFilters(jobListContainer, normalizedQueryTerm); 
         }, 300);
     });
 }
 
 // -----------------------------------------------------------
-// --- RENDER MAIN FEED (Fixed) ---
+// --- MAP INTERACTION LISTENERS (Card -> Pin) ---
+// -----------------------------------------------------------
+
+function setupCardMapListeners() {
+    const jobCards = document.querySelectorAll('.job-card');
+    jobCards.forEach(card => {
+        const jobId = card.dataset.jobId;
+
+        card.addEventListener('mouseenter', () => {
+            flyToJobLocation(jobId);
+        });
+    });
+}
+
+// -----------------------------------------------------------
+// --- RADIUS LISTENERS ---
+// -----------------------------------------------------------
+
+function setupRadiusListeners(jobListContainer) {
+    const locateMeBtn = document.getElementById('locate-me-btn');
+    const radiusInput = document.getElementById('radius-input');
+    const applyRadiusBtn = document.getElementById('apply-radius-btn');
+
+    // 1. Geolocation Button
+    locateMeBtn.addEventListener('click', async () => {
+        const coords = await getCurrentLocation(); // [lng, lat]
+        if (coords) {
+            // Update the global filter center point
+            filterCenter[0] = coords[0];
+            filterCenter[1] = coords[1];
+            
+            //  Use the stored mapInstance to fly the map
+            if (mapInstance) {
+                mapInstance.flyTo({ center: coords, zoom: 12 });
+            }
+            // Set a flag that location filtering is now active
+            radiusInput.dataset.radiusApplied = 'true';
+            applyFilters(jobListContainer); 
+        }
+    });
+
+    // 2. Apply Radius Button
+    applyRadiusBtn.addEventListener('click', () => {
+        const radiusValue = parseInt(radiusInput.value, 10);
+        
+        if (radiusValue > 0 && filterCenter[0] !== 0) {
+            // Update global radius variable
+            currentRadius = radiusValue;
+            
+            // Set a flag in the filter state 
+            radiusInput.dataset.radiusApplied = 'true'; 
+
+            // Re-apply all filters
+            applyFilters(jobListContainer); 
+        } else {
+            alert("Please click 'Find Jobs Near Me' or select a location first to set the center point.");
+        }
+    });
+}
+
+// -----------------------------------------------------------
+// --- RENDER MAIN FEED (Fixed HTML Structure) ---
 // -----------------------------------------------------------
 
 export async function renderJobFeed(containerElement) {
-    // 1. Inject the HTML structure (including filter controls)
+    // 1. Inject the HTML structure (Correctly nested and ordered)
     containerElement.innerHTML = `
         <h1 class="page-title">Featured Opportunities in Lagos</h1>
         
@@ -178,16 +195,30 @@ export async function renderJobFeed(containerElement) {
                     <option value="500k+">₦500,000+</option>
                     <option value="1M+">₦1,000,000+</option>
                 </select>
+                
+                <div class="distance-filter-controls">
+                    <button id="locate-me-btn" class="btn-primary small-btn">
+                        📍 Find Jobs Near Me
+                    </button>
+                    <label for="radius-input" style="white-space: nowrap;">Radius (km):</label>
+                    <input type="number" id="radius-input" min="5" max="200" value="50" data-radius-applied="false" style="width: 60px;">
+                    <button id="apply-radius-btn" class="btn-secondary small-btn">Apply</button>
+                </div>
 
                 <button id="reset-filters-btn" class="btn-secondary small-btn">Reset</button>
             </div>
+            
+        </div>
+        
+        <div id="map-container" class="map-container-card">
+            <div id="job-map" style="width: 100%; height: 400px; border-radius: 8px;"></div>
         </div>
         
         <div id="job-list">
             <p style="text-align: center; padding: 2rem;">Loading jobs...</p>
         </div>
     `;
-
+    
     const jobListContainer = document.getElementById('job-list');
 
     try {
@@ -201,12 +232,16 @@ export async function renderJobFeed(containerElement) {
             jobListContainer.innerHTML = jobCardsHTML;
         }
         
+        //  Initialize Map and store the instance
+        mapInstance = initializeMap('job-map', jobs);
+
         // 3. Attach all listeners after the HTML is in the DOM
         setupSearchListener();
         setupFilterControls(jobListContainer);
+        setupCardMapListeners();
+        setupRadiusListeners(jobListContainer); 
 
     } catch (error) {
-        // Display a helpful error if the fetch fails
         console.error("Error fetching jobs:", error);
         jobListContainer.innerHTML = `<p style="color: red; padding: 2rem;">Error loading jobs. Check console for database issues (security rules or network error).</p>`;
     }
