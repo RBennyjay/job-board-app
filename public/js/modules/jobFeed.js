@@ -1,16 +1,16 @@
 // public/js/modules/jobFeed.js
 
 // Import all required functions from firebaseService and mapIntegration
-import { setupFilterControls, applyFilters } from "./filterControls.js"; // 🚨 ADDED applyFilters
-import { getAllJobs, searchJobs } from "../services/firebaseService.js";
+import { setupFilterControls, applyFilters } from "./filterControls.js"; 
+import { getAllJobs } from "../services/firebaseService.js"; // 
 import { 
     initializeMap, 
-    highlightJobCard, 
     flyToJobLocation, 
     getCurrentLocation, 
-    filterCenter, // Imported for direct state update
-    currentRadius // Imported for direct state update
-} from "./mapIntegration.js"; 
+    filterCenter, 
+    updateMapFilterCenter, 
+    LOCATION_COORDINATES 
+} from "./mapIntegration.js"; // Removed highlightJobCard and currentRadius
 
 // A variable to store the Mapbox map instance for easy access in listeners
 let mapInstance;
@@ -31,6 +31,60 @@ function truncateDescription(description, maxWords = 15) {
     return words.slice(0, maxWords).join(' ') + '...';
 }
 
+// -----------------------------------------------------------
+// --- RADIUS LISTENERS ---
+// -----------------------------------------------------------
+
+function setupRadiusListeners(jobListContainer) {
+    const locateMeBtn = document.getElementById('locate-me-btn');
+    const radiusInput = document.getElementById('radius-input');
+    const applyRadiusBtn = document.getElementById('apply-radius-btn');
+
+    // 1. Geolocation Button
+    locateMeBtn.addEventListener('click', async () => {
+        const coords = await getCurrentLocation(); // [lng, lat]
+        if (coords) {
+            // ✅ FIX: Use updateMapFilterCenter to set global state (filterCenter), marker, and fly the map.
+            updateMapFilterCenter(coords, true); 
+            
+            // Set a flag that location filtering is now active
+            radiusInput.dataset.radiusApplied = 'true';
+            
+            // Update global radius variable
+            currentRadius = parseInt(radiusInput.value, 10);
+            
+            applyFilters(jobListContainer); 
+        }
+    });
+
+    // 2. Apply Radius Button
+    applyRadiusBtn.addEventListener('click', () => {
+        const radiusValue = parseInt(radiusInput.value, 10);
+        
+        // Use default Lagos coordinates if the user hasn't located themselves yet
+        const centerCoords = (filterCenter[0] === LOCATION_COORDINATES.lagos[0] && filterCenter[1] === LOCATION_COORDINATES.lagos[1]) 
+            ? LOCATION_COORDINATES.lagos 
+            : filterCenter;
+        
+        if (radiusValue > 0 && centerCoords[0] !== 0) {
+            
+            // Update global radius variable
+            currentRadius = radiusValue;
+            
+            // Update the map marker/popup radius but DON'T fly the map (false)
+            updateMapFilterCenter(centerCoords, false); 
+            
+            // Set a flag in the filter state 
+            radiusInput.dataset.radiusApplied = 'true'; 
+
+            // Re-apply all filters
+            applyFilters(jobListContainer); 
+        } else {
+            alert("Please click 'Find Jobs Near Me' or select a location first to set the center point.");
+        }
+    });
+}
+
 /**
  * Creates the HTML string for a single Job Card.
  */
@@ -46,9 +100,9 @@ export function createJobCardHTML(job) {
 
     return `
         <a href="#details/${job.id}" 
-           class="job-card" 
-           id="job-card-${job.id}" 
-           data-job-id="${job.id}"> 
+            class="job-card" 
+            id="job-card-${job.id}" 
+            data-job-id="${job.id}"> 
             
             <h3 class="job-card-title">${job.title}</h3>
             <p class="job-card-info">${companyName}</p>
@@ -88,9 +142,6 @@ function setupSearchListener() {
         clearTimeout(timeoutId);
 
         timeoutId = setTimeout(async () => {
-            // Re-run applyFilters to ensure all current filters (including radius) are honored
-            // For now, we'll let applyFilters handle the list update to simplify logic, 
-            // but in a production app, the search and filters should be synchronized better.
             applyFilters(jobListContainer, normalizedQueryTerm); 
         }, 300);
     });
@@ -101,59 +152,15 @@ function setupSearchListener() {
 // -----------------------------------------------------------
 
 function setupCardMapListeners() {
-    const jobCards = document.querySelectorAll('.job-card');
+    const jobListContainer = document.getElementById('job-list');
+    
+    const jobCards = jobListContainer.querySelectorAll('.job-card'); 
     jobCards.forEach(card => {
         const jobId = card.dataset.jobId;
 
         card.addEventListener('mouseenter', () => {
             flyToJobLocation(jobId);
         });
-    });
-}
-
-// -----------------------------------------------------------
-// --- RADIUS LISTENERS ---
-// -----------------------------------------------------------
-
-function setupRadiusListeners(jobListContainer) {
-    const locateMeBtn = document.getElementById('locate-me-btn');
-    const radiusInput = document.getElementById('radius-input');
-    const applyRadiusBtn = document.getElementById('apply-radius-btn');
-
-    // 1. Geolocation Button
-    locateMeBtn.addEventListener('click', async () => {
-        const coords = await getCurrentLocation(); // [lng, lat]
-        if (coords) {
-            // Update the global filter center point
-            filterCenter[0] = coords[0];
-            filterCenter[1] = coords[1];
-            
-            //  Use the stored mapInstance to fly the map
-            if (mapInstance) {
-                mapInstance.flyTo({ center: coords, zoom: 12 });
-            }
-            // Set a flag that location filtering is now active
-            radiusInput.dataset.radiusApplied = 'true';
-            applyFilters(jobListContainer); 
-        }
-    });
-
-    // 2. Apply Radius Button
-    applyRadiusBtn.addEventListener('click', () => {
-        const radiusValue = parseInt(radiusInput.value, 10);
-        
-        if (radiusValue > 0 && filterCenter[0] !== 0) {
-            // Update global radius variable
-            currentRadius = radiusValue;
-            
-            // Set a flag in the filter state 
-            radiusInput.dataset.radiusApplied = 'true'; 
-
-            // Re-apply all filters
-            applyFilters(jobListContainer); 
-        } else {
-            alert("Please click 'Find Jobs Near Me' or select a location first to set the center point.");
-        }
     });
 }
 
@@ -232,7 +239,7 @@ export async function renderJobFeed(containerElement) {
             jobListContainer.innerHTML = jobCardsHTML;
         }
         
-        //  Initialize Map and store the instance
+        //  Initialize Map and store the instance
         mapInstance = initializeMap('job-map', jobs);
 
         // 3. Attach all listeners after the HTML is in the DOM

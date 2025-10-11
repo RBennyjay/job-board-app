@@ -49,7 +49,7 @@ export async function renderJobDetails(containerElement, jobId) {
             return;
         }
         
-        // 🚨 Application Button Logic
+        //  Application Button Logic
         const applicationLink = job.applicationLink;
         const applicationEmail = job.applicationEmail;
         let applyButtonHTML;
