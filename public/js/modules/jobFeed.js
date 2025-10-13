@@ -1,4 +1,4 @@
-// public/js/modules/jobFeed.js 
+// public/js/modules/jobFeed.js (FINAL CORRECTED VERSION)
 
 // Import all required functions
 import { setupFilterControls, applyFilters } from "./filterControls.js"; 
@@ -68,6 +68,7 @@ function setupRadiusListeners(jobListContainer) {
             // Pass isAdmin status
             applyFilters(jobListContainer, null, isAdmin); 
         } else {
+            // NOTE: Using a custom modal is better than alert in production
             alert("Please click 'Find Jobs Near Me' or select a location first to set the center point.");
         }
     });
@@ -213,6 +214,7 @@ function setupDeleteJobListener(jobListContainer) {
             const jobTitleElement = jobCard ? jobCard.querySelector('.job-card-title') : null;
             const jobTitle = jobTitleElement ? jobTitleElement.textContent : 'Unknown Job';
 
+            // NOTE: Using a custom modal is better than alert in production
             const confirmed = confirm(`Are you sure you want to permanently delete the job: "${jobTitle}"? This action cannot be undone.`);
             
             if (!confirmed) {
@@ -224,6 +226,7 @@ function setupDeleteJobListener(jobListContainer) {
                 
                 await deleteJob(jobId);
                 
+                // NOTE: Using a custom modal is better than alert in production
                 alert(`Job "${jobTitle}" deleted successfully.`);
                 
                 // Pass isAdmin status
@@ -231,6 +234,7 @@ function setupDeleteJobListener(jobListContainer) {
                 
             } catch (error) {
                 console.error("Deletion failed:", error);
+                // NOTE: Using a custom modal is better than alert in production
                 alert("Failed to delete job. Check console for details. (Possible permission issue)");
             } finally {
                 deleteButton.disabled = false;
@@ -329,13 +333,22 @@ export async function renderJobFeed(containerElement) {
     }
 
     try {
-        // 1. CHECK AND SET ADMIN STATUS
+        // 1. CHECK AND SET ADMIN STATUS WITH RETRY LOGIC (Fixes the timing issue)
         let currentIsAdmin = false; 
         if (auth.currentUser) {
-            currentIsAdmin = await isUserAdmin();
-            isAdmin = currentIsAdmin; // Set global flag
+            // Attempt the check, with a small retry if it fails (due to database lag)
+            for (let i = 0; i < 3; i++) {
+                currentIsAdmin = await isUserAdmin();
+                if (currentIsAdmin) {
+                    break;
+                }
+                // Wait 200ms before retrying, giving Firestore time to stabilize
+                if (i < 2) { 
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+            }
             
-            // 🛑 CRITICAL DEBUGGING LINE: CHECK THE CONSOLE FOR THIS VALUE 🛑
+            isAdmin = currentIsAdmin; // Set global flag
             console.log("DEBUG: Admin Check Result from isUserAdmin():", currentIsAdmin);
         }
         
