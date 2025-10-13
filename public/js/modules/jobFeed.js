@@ -1,8 +1,8 @@
-// public/js/modules/jobFeed.js
+// public/js/modules/jobFeed.js 
 
-// Import all required functions from firebaseService and mapIntegration
+// Import all required functions
 import { setupFilterControls, applyFilters } from "./filterControls.js"; 
-import { getAllJobs } from "../services/firebaseService.js"; // 
+import { getAllJobs, deleteJob, auth, isUserAdmin } from "../services/firebaseService.js"; 
 import { 
     initializeMap, 
     flyToJobLocation, 
@@ -10,18 +10,16 @@ import {
     filterCenter, 
     updateMapFilterCenter, 
     LOCATION_COORDINATES 
-} from "./mapIntegration.js"; // Removed highlightJobCard and currentRadius
+} from "./mapIntegration.js"; 
 
-// A variable to store the Mapbox map instance for easy access in listeners
 let mapInstance;
+// Global flag to cache admin status
+let isAdmin = false; 
 
 // -----------------------------------------------------------
 // --- JOB CARD HELPERS ---
 // -----------------------------------------------------------
 
-/**
- * Helper to truncate the job description for a short summary on the card.
- */
 function truncateDescription(description, maxWords = 15) {
     if (!description) return 'No description provided.';
     const words = description.split(/\s+/);
@@ -40,55 +38,83 @@ function setupRadiusListeners(jobListContainer) {
     const radiusInput = document.getElementById('radius-input');
     const applyRadiusBtn = document.getElementById('apply-radius-btn');
 
-    // 1. Geolocation Button
+    if (!locateMeBtn || !radiusInput || !applyRadiusBtn) {
+        console.warn("Radius control buttons or input were not found. Skipping radius listeners setup.");
+        return;
+    }
+
     locateMeBtn.addEventListener('click', async () => {
         const coords = await getCurrentLocation(); // [lng, lat]
         if (coords) {
-            // ✅ FIX: Use updateMapFilterCenter to set global state (filterCenter), marker, and fly the map.
             updateMapFilterCenter(coords, true); 
-            
-            // Set a flag that location filtering is now active
             radiusInput.dataset.radiusApplied = 'true';
             
-            // Update global radius variable
-            currentRadius = parseInt(radiusInput.value, 10);
-            
-            applyFilters(jobListContainer); 
+            // Pass isAdmin status
+            applyFilters(jobListContainer, null, isAdmin); 
         }
     });
 
-    // 2. Apply Radius Button
     applyRadiusBtn.addEventListener('click', () => {
         const radiusValue = parseInt(radiusInput.value, 10);
         
-        // Use default Lagos coordinates if the user hasn't located themselves yet
         const centerCoords = (filterCenter[0] === LOCATION_COORDINATES.lagos[0] && filterCenter[1] === LOCATION_COORDINATES.lagos[1]) 
             ? LOCATION_COORDINATES.lagos 
             : filterCenter;
         
         if (radiusValue > 0 && centerCoords[0] !== 0) {
-            
-            // Update global radius variable
-            currentRadius = radiusValue;
-            
-            // Update the map marker/popup radius but DON'T fly the map (false)
             updateMapFilterCenter(centerCoords, false); 
-            
-            // Set a flag in the filter state 
             radiusInput.dataset.radiusApplied = 'true'; 
 
-            // Re-apply all filters
-            applyFilters(jobListContainer); 
+            // Pass isAdmin status
+            applyFilters(jobListContainer, null, isAdmin); 
         } else {
             alert("Please click 'Find Jobs Near Me' or select a location first to set the center point.");
         }
     });
 }
 
+// -----------------------------------------------------------
+// --- DELETE BUTTON VISIBILITY LOGIC (CORRECTED) ---
+// -----------------------------------------------------------
+
+/**
+ * Determines if the delete button should be shown for a given job.
+ * @param {object} job - The job data object.
+ * @param {boolean} currentIsAdmin - The admin status of the current user.
+ */
+function shouldShowDeleteButton(job, currentIsAdmin) { 
+    if (!auth || !auth.currentUser) {
+        return false;
+    }
+    
+    //  Allow delete if the user is an admin
+    if (currentIsAdmin === true) { 
+        return true;
+    }
+
+    //  Allow delete if the user created the job (ownership)
+    const currentUserUid = auth.currentUser.uid;
+    const jobCreatorUid = job.createdBy; 
+
+    if (jobCreatorUid && currentUserUid === jobCreatorUid) {
+        return true;
+    }
+
+    return false; 
+}
+
+
 /**
  * Creates the HTML string for a single Job Card.
+ * @param {object} job - The job data object.
+ * @param {boolean} currentIsAdmin - The admin status of the current user.
  */
-export function createJobCardHTML(job) {
+export function createJobCardHTML(job, currentIsAdmin) {
+    if (!job.id) {
+        console.error("Job card attempted to render without an ID:", job);
+        return ''; 
+    }
+    
     const location = job.location || 'N/A';
     const companyName = job.company || 'Confidential';
     const category = job.category || 'General';
@@ -98,12 +124,38 @@ export function createJobCardHTML(job) {
                  job.postedAt.toDate().toLocaleDateString() : 
                  'Unknown Date';
 
+    // Calls the CORRECTED function
+    const showDeleteButton = shouldShowDeleteButton(job, currentIsAdmin); 
+    let deleteButtonHTML = '';
+
+    if (showDeleteButton) { 
+        deleteButtonHTML = `
+            <button class="delete-job-btn" 
+                    data-job-id="${job.id}"
+                    title="Delete this job"
+                    style="
+                        position: absolute; top: 10px; right: 10px; padding: 5px; 
+                        font-size: 1.2rem; color: #ccc; background: transparent; 
+                        border: none; cursor: pointer; z-index: 10;
+                        transition: color 0.2s ease;
+                    "
+                    onmouseover="this.style.color='#FF4444'" 
+                    onmouseout="this.style.color='#ccc'"   
+            >
+                🗑️
+            </button>
+        `;
+    }
+
     return `
         <a href="#details/${job.id}" 
             class="job-card" 
             id="job-card-${job.id}" 
-            data-job-id="${job.id}"> 
+            data-job-id="${job.id}"
+            style="position: relative; padding-top: ${showDeleteButton ? '35px' : '15px'};"> 
             
+            ${deleteButtonHTML}
+
             <h3 class="job-card-title">${job.title}</h3>
             <p class="job-card-info">${companyName}</p>
             
@@ -124,7 +176,7 @@ export function createJobCardHTML(job) {
 }
     
 // -----------------------------------------------------------
-// --- SEARCH LISTENER FUNCTION ---
+// --- SEARCH AND DELETE LISTENERS ---
 // -----------------------------------------------------------
 
 function setupSearchListener() {
@@ -142,18 +194,57 @@ function setupSearchListener() {
         clearTimeout(timeoutId);
 
         timeoutId = setTimeout(async () => {
-            applyFilters(jobListContainer, normalizedQueryTerm); 
+            // Pass isAdmin status
+            applyFilters(jobListContainer, normalizedQueryTerm, isAdmin); 
         }, 300);
     });
 }
 
-// -----------------------------------------------------------
-// --- MAP INTERACTION LISTENERS (Card -> Pin) ---
-// -----------------------------------------------------------
+function setupDeleteJobListener(jobListContainer) {
+    jobListContainer.addEventListener('click', async (event) => {
+        const deleteButton = event.target.closest('.delete-job-btn');
+        
+        if (deleteButton) {
+            event.preventDefault(); 
+            event.stopPropagation(); 
+            
+            const jobId = deleteButton.dataset.jobId;
+            const jobCard = deleteButton.closest('.job-card');
+            const jobTitleElement = jobCard ? jobCard.querySelector('.job-card-title') : null;
+            const jobTitle = jobTitleElement ? jobTitleElement.textContent : 'Unknown Job';
+
+            const confirmed = confirm(`Are you sure you want to permanently delete the job: "${jobTitle}"? This action cannot be undone.`);
+            
+            if (!confirmed) {
+                return;
+            }
+            
+            try {
+                deleteButton.disabled = true;
+                
+                await deleteJob(jobId);
+                
+                alert(`Job "${jobTitle}" deleted successfully.`);
+                
+                // Pass isAdmin status
+                await applyFilters(jobListContainer, null, isAdmin); 
+                
+            } catch (error) {
+                console.error("Deletion failed:", error);
+                alert("Failed to delete job. Check console for details. (Possible permission issue)");
+            } finally {
+                deleteButton.disabled = false;
+            }
+        }
+    });
+}
+
 
 function setupCardMapListeners() {
     const jobListContainer = document.getElementById('job-list');
     
+    if (!jobListContainer) return;
+
     const jobCards = jobListContainer.querySelectorAll('.job-card'); 
     jobCards.forEach(card => {
         const jobId = card.dataset.jobId;
@@ -165,11 +256,15 @@ function setupCardMapListeners() {
 }
 
 // -----------------------------------------------------------
-// --- RENDER MAIN FEED (Fixed HTML Structure) ---
+// --- RENDER MAIN FEED ---
 // -----------------------------------------------------------
 
 export async function renderJobFeed(containerElement) {
-    // 1. Inject the HTML structure (Correctly nested and ordered)
+    if (!containerElement) {
+        console.error("Critical: Main container element passed to renderJobFeed is null.");
+        return;
+    }
+
     containerElement.innerHTML = `
         <h1 class="page-title">Featured Opportunities in Lagos</h1>
         
@@ -214,7 +309,6 @@ export async function renderJobFeed(containerElement) {
 
                 <button id="reset-filters-btn" class="btn-secondary small-btn">Reset</button>
             </div>
-            
         </div>
         
         <div id="map-container" class="map-container-card">
@@ -228,25 +322,48 @@ export async function renderJobFeed(containerElement) {
     
     const jobListContainer = document.getElementById('job-list');
 
+    if (!jobListContainer) {
+        console.error("Critical: The 'job-list' element could not be found after DOM manipulation. Page structure is likely broken.");
+        containerElement.innerHTML = `<p style="color: red; padding: 2rem;">Failed to initialize job feed. Missing the main job list container.</p>`;
+        return; 
+    }
+
     try {
-        // 2. Fetch and render initial job list
+        // 1. CHECK AND SET ADMIN STATUS
+        let currentIsAdmin = false; 
+        if (auth.currentUser) {
+            currentIsAdmin = await isUserAdmin();
+            isAdmin = currentIsAdmin; // Set global flag
+            
+            // 🛑 CRITICAL DEBUGGING LINE: CHECK THE CONSOLE FOR THIS VALUE 🛑
+            console.log("DEBUG: Admin Check Result from isUserAdmin():", currentIsAdmin);
+        }
+        
+        // 2. Fetch all job data
         const jobs = await getAllJobs();
         
+        // 3. Render jobs (Now passes currentIsAdmin status)
         if (jobs.length === 0) {
             jobListContainer.innerHTML = '<p style="text-align: center; padding: 2rem; color: gray;">No jobs posted yet. Be the first!</p>';
         } else {
-            const jobCardsHTML = jobs.map(createJobCardHTML).join('');
+            const jobCardsHTML = jobs
+                // This call uses the result of the awaited check
+                .map(job => createJobCardHTML(job, currentIsAdmin)) 
+                .join('');
+                
             jobListContainer.innerHTML = jobCardsHTML;
         }
         
-        //  Initialize Map and store the instance
+        // 4. Initialize Map
         mapInstance = initializeMap('job-map', jobs);
 
-        // 3. Attach all listeners after the HTML is in the DOM
+        // 5. Attach all listeners after the HTML is in the DOM
+        // Listeners use the global 'isAdmin' flag set above
         setupSearchListener();
-        setupFilterControls(jobListContainer);
+        setupFilterControls(jobListContainer, isAdmin); 
         setupCardMapListeners();
         setupRadiusListeners(jobListContainer); 
+        setupDeleteJobListener(jobListContainer); 
 
     } catch (error) {
         console.error("Error fetching jobs:", error);
