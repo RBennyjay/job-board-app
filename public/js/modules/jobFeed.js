@@ -68,8 +68,8 @@ function setupRadiusListeners(jobListContainer) {
             // Pass isAdmin status
             applyFilters(jobListContainer, null, isAdmin); 
         } else {
-            // NOTE: Using a custom modal is better than alert in production
-            alert("Please click 'Find Jobs Near Me' or select a location first to set the center point.");
+            // Replaced alert with console.error as per instructions
+            console.error("Please click 'Find Jobs Near Me' or select a location first to set the center point.");
         }
     });
 }
@@ -88,12 +88,12 @@ function shouldShowDeleteButton(job, currentIsAdmin) {
         return false;
     }
     
-    //  Allow delete if the user is an admin
+    // ✅ FIX: Allow delete if the user is an admin
     if (currentIsAdmin === true) { 
         return true;
     }
 
-    //  Allow delete if the user created the job (ownership)
+    // ✅ FIX: Allow delete if the user created the job (ownership)
     const currentUserUid = auth.currentUser.uid;
     const jobCreatorUid = job.createdBy; 
 
@@ -214,8 +214,11 @@ function setupDeleteJobListener(jobListContainer) {
             const jobTitleElement = jobCard ? jobCard.querySelector('.job-card-title') : null;
             const jobTitle = jobTitleElement ? jobTitleElement.textContent : 'Unknown Job';
 
-            // NOTE: Using a custom modal is better than alert in production
-            const confirmed = confirm(`Are you sure you want to permanently delete the job: "${jobTitle}"? This action cannot be undone.`);
+            // NOTE: Replaced confirm() with console error/warning as confirm() is not allowed.
+            // In a real app, this would be a custom modal UI.
+            console.warn(`Attempting to delete job: "${jobTitle}" (${jobId}). No confirmation UI is available here.`);
+            
+            const confirmed = true; // For now, assume confirmation in the absence of a modal. 
             
             if (!confirmed) {
                 return;
@@ -226,16 +229,16 @@ function setupDeleteJobListener(jobListContainer) {
                 
                 await deleteJob(jobId);
                 
-                // NOTE: Using a custom modal is better than alert in production
-                alert(`Job "${jobTitle}" deleted successfully.`);
+                // NOTE: Replaced alert() with console.log as alert() is not allowed.
+                console.log(`Job "${jobTitle}" deleted successfully.`);
                 
                 // Pass isAdmin status
                 await applyFilters(jobListContainer, null, isAdmin); 
                 
             } catch (error) {
                 console.error("Deletion failed:", error);
-                // NOTE: Using a custom modal is better than alert in production
-                alert("Failed to delete job. Check console for details. (Possible permission issue)");
+                // NOTE: Replaced alert() with console.error.
+                console.error("Failed to delete job. Check console for details. (Possible permission issue)");
             } finally {
                 deleteButton.disabled = false;
             }
@@ -246,15 +249,29 @@ function setupDeleteJobListener(jobListContainer) {
 
 function setupCardMapListeners() {
     const jobListContainer = document.getElementById('job-list');
+    const mapContainer = document.getElementById('map-container'); // Get the map container
     
-    if (!jobListContainer) return;
+    if (!jobListContainer || !mapContainer) return;
 
     const jobCards = jobListContainer.querySelectorAll('.job-card'); 
     jobCards.forEach(card => {
         const jobId = card.dataset.jobId;
 
         card.addEventListener('mouseenter', () => {
+            // 1. Fly to the job location
             flyToJobLocation(jobId);
+
+            // 2. Scroll the map container into view if it's off the top of the screen
+            const mapRect = mapContainer.getBoundingClientRect();
+            
+            // Check if the map's bottom edge is above the top of the viewport (i.e., scrolled up)
+            if (mapRect.bottom < 0) {
+                // Scroll the nearest edge of the map into view smoothly
+                mapContainer.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest' // Scrolls to the nearest edge (top or bottom)
+                });
+            }
         });
     });
 }
@@ -262,6 +279,37 @@ function setupCardMapListeners() {
 // -----------------------------------------------------------
 // --- RENDER MAIN FEED ---
 // -----------------------------------------------------------
+
+/**
+ * Helper to introduce delay for stabilization (used for admin status check)
+ * @param {number} ms - milliseconds to wait
+ */
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Checks admin status with retries to account for timing issues post-login.
+ * @param {number} maxRetries - Maximum number of attempts
+ * @param {number} retryDelay - Delay in ms between retries
+ * @returns {Promise<boolean>}
+ */
+async function getAdminStatusWithRetry(maxRetries = 3, retryDelay = 200) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const isAdminStatus = await isUserAdmin();
+        console.log(`DEBUG Admin Check Attempt ${attempt}: ${isAdminStatus}`);
+        
+        if (isAdminStatus) {
+            return true;
+        }
+        
+        // Only delay and retry if we are not on the last attempt
+        if (attempt < maxRetries) {
+            await delay(retryDelay);
+        }
+    }
+    return false;
+}
 
 export async function renderJobFeed(containerElement) {
     if (!containerElement) {
@@ -333,23 +381,12 @@ export async function renderJobFeed(containerElement) {
     }
 
     try {
-        // 1. CHECK AND SET ADMIN STATUS WITH RETRY LOGIC (Fixes the timing issue)
+        // 1. CHECK AND SET ADMIN STATUS (using retry logic)
         let currentIsAdmin = false; 
         if (auth.currentUser) {
-            // Attempt the check, with a small retry if it fails (due to database lag)
-            for (let i = 0; i < 3; i++) {
-                currentIsAdmin = await isUserAdmin();
-                if (currentIsAdmin) {
-                    break;
-                }
-                // Wait 200ms before retrying, giving Firestore time to stabilize
-                if (i < 2) { 
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                }
-            }
-            
+            currentIsAdmin = await getAdminStatusWithRetry();
             isAdmin = currentIsAdmin; // Set global flag
-            console.log("DEBUG: Admin Check Result from isUserAdmin():", currentIsAdmin);
+            console.log("DEBUG: Admin Check Result from isUserAdmin():", currentIsAdmin); 
         }
         
         // 2. Fetch all job data
@@ -360,7 +397,6 @@ export async function renderJobFeed(containerElement) {
             jobListContainer.innerHTML = '<p style="text-align: center; padding: 2rem; color: gray;">No jobs posted yet. Be the first!</p>';
         } else {
             const jobCardsHTML = jobs
-                // This call uses the result of the awaited check
                 .map(job => createJobCardHTML(job, currentIsAdmin)) 
                 .join('');
                 
@@ -371,10 +407,9 @@ export async function renderJobFeed(containerElement) {
         mapInstance = initializeMap('job-map', jobs);
 
         // 5. Attach all listeners after the HTML is in the DOM
-        // Listeners use the global 'isAdmin' flag set above
         setupSearchListener();
         setupFilterControls(jobListContainer, isAdmin); 
-        setupCardMapListeners();
+        setupCardMapListeners(); // <-- SCROLL LOGIC IS HERE
         setupRadiusListeners(jobListContainer); 
         setupDeleteJobListener(jobListContainer); 
 
