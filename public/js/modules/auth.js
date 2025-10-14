@@ -1,18 +1,20 @@
 // public/js/modules/auth.js
 
-import { saveUserProfile } from "../services/firebaseService.js";
-import { auth } from "../services/firebaseConfig.js"; 
-import { updateAuthUI } from "./authUI.js"; 
+import { saveUserProfile, clearAdminCache } from "../services/firebaseService.js";
+import { auth } from "../services/firebaseConfig.js";
+import { updateAuthUI } from "./authUI.js";
 import { router } from "../main.js";
-import { 
-    GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut 
+import {
+    GoogleAuthProvider,
+    signInWithPopup,
+    onAuthStateChanged,
+    signOut
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const provider = new GoogleAuthProvider();
 
-// Google Sign-in function
+// --- Google Sign-in ---
 export async function googleLogin() {
-// ... (rest of googleLogin remains the same)
     try {
         const result = await signInWithPopup(auth, provider);
         console.log("Google login success:", result.user.email);
@@ -23,53 +25,54 @@ export async function googleLogin() {
     }
 }
 
-//  Google Sign-out function
+// --- Google Sign-out ---
 export async function googleSignOut() {
-
     try {
+        //  Clear cached admin status before signing out
+        clearAdminCache();
+
         await signOut(auth);
-        console.log("User signed out successfully.");
-        // UI update handled by onAuthStateChanged listener
+        console.log("✅ User signed out successfully.");
+
+        // UI update handled automatically by onAuthStateChanged
     } catch (error) {
-        console.error("Sign out failed:", error.message);
+        console.error("❌ Sign out failed:", error.message);
     }
 }
 
-
-// Watch auth state and update UI/DB
+// --- Watch Authentication State ---
 export function watchAuthStatus() {
-    let hasRunInitialRouter = false; 
-    
+    let hasRunInitialRouter = false;
+
     onAuthStateChanged(auth, async (user) => {
-        //  Call the UI updater immediately with the current user status
-        updateAuthUI(user); 
+        //  Update the UI (ensures admin button toggles correctly)
+        await updateAuthUI(user);
 
         if (user) {
             console.log("✅ Logged in as:", user.email);
-            
-            // Wait for user profile data to be saved/updated (CRITICAL AWAIT)
-            await saveUserProfile(user); 
 
-            //  If the initial router run has completed, 
-            // we must re-run the router now that the profile is saved.
-            // This forces the feed to re-render, ensuring isUserAdmin() sees the correct status.
+            // Save or update the user profile in Firestore
+            await saveUserProfile(user);
+
+            // Force reroute after saving profile to stabilize admin visibility
             if (hasRunInitialRouter) {
                 console.log("Forcing re-route after profile save to stabilize admin status.");
-                router(); 
+                router();
             }
         } else {
-            console.log("❌ No user logged in");
-            // redirect to the feed if the user logs out from a restricted page
+            console.log("❌ No user logged in.");
+
+            // Redirect away from restricted pages
             if (window.location.hash.includes('#post') || window.location.hash.includes('#admin')) {
-                 window.location.hash = '#feed';
+                window.location.hash = '#feed';
             }
         }
 
-        //  Only run the router once for the INITIAL page load
+        // Run router once on initial load
         if (!hasRunInitialRouter) {
             hasRunInitialRouter = true;
             console.log("Initial router run.");
-            router(); 
+            router();
         }
     });
 }
