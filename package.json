@@ -2,16 +2,18 @@
   "name": "lagos-job-board",
   "version": "1.0.0",
   "main": "index.js",
-"scripts": {
-  "start": "npx serve -s public",
-  "test": "echo \"Error: no test specified\" && exit 1"
-},
+  "scripts": {
+    "start": "npx serve -s public",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
     "firebase": "^10.12.0",
+    "firebase-admin": "^13.5.0",
+    "firebase-functions": "^6.5.0",
     "serve": "^14.2.5"
   }
 }

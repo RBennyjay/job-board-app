@@ -791,3 +791,287 @@ textarea {
     margin-right: 0.5rem;
 }
 
+
+
+.admin-controls-container {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.admin-controls-container h2 {
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+/* Tabs Styling */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 20px;
+}
+
+.tab-button {
+    background-color: #e0e0e0;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #555;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    margin-right: 5px;
+}
+
+.tab-button:hover:not(.active) {
+    background-color: #d0d0d0;
+    color: #333;
+}
+
+.tab-button.active {
+    background-color: #fff;
+    color: #007bff;
+    border-bottom: 3px solid #007bff;  
+    padding-bottom: 8px;  
+}
+
+.tab-content {
+    display: none;
+    padding-top: 10px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Moderation Card Styling (for jobs and users) */
+.moderation-job-card,
+.user-management-card {
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;   
+    justify-content: space-between;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+@media (min-width: 768px) {
+
+    .moderation-job-card,
+    .user-management-card {
+        flex-direction: row;      
+        align-items: center;
+    }
+}
+
+.moderation-job-card .job-info,
+.user-management-card .user-info {
+    flex-grow: 1;
+    margin-bottom: 10px;  
+}
+
+@media (min-width: 768px) {
+
+    .moderation-job-card .job-info,
+    .user-management-card .user-info {
+        margin-bottom: 0;
+        margin-right: 20px;       
+    }
+}
+
+.moderation-job-card h3,
+.user-management-card h3 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    color: #333;
+    font-size: 1.15rem;
+}
+
+.moderation-job-card p,
+.user-management-card p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #fff;
+    margin-left: 8px;
+}
+
+.moderation-job-card.status-approved .status-badge {
+    background-color: #28a745;    
+}
+
+.moderation-job-card.status-pending .status-badge {
+    background-color: #ffc107;  
+    color: #333;
+}
+
+
+/* --- Action Buttons Styling (General for both jobs and users) --- */
+.job-actions,
+.user-actions {
+    display: flex;
+    flex-wrap: wrap;  
+    gap: 10px;   
+    margin-top: 10px;
+   
+}
+
+@media (min-width: 768px) {
+
+    .job-actions,
+    .user-actions {
+        margin-top: 0;       
+    }
+}
+
+.action-btn {
+    padding: 8px 15px;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: 1px solid;
+    transition: all 0.2s ease-in-out;
+    white-space: nowrap;   
+}
+
+/* View/Edit Button (Primary Action - Blue) */
+.action-btn.view-btn {
+    background-color: #007bff;   
+    color: #fff;
+    border-color: #007bff;
+}
+
+.action-btn.view-btn:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 123, 255, 0.3);
+}
+
+/* Approve Button (Success - Green) */
+.action-btn.approve-btn {
+    background-color: #28a745;
+    /* Green */
+    color: #fff;
+    border-color: #28a745;
+}
+
+.action-btn.approve-btn:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(40, 167, 69, 0.3);
+}
+
+/* Reject Button (Warning - Orange/Yellow) */
+.action-btn.reject-btn {
+    background-color: #ffc107;    
+    color: #333;
+    border-color: #ffc107;
+}
+
+.action-btn.reject-btn:hover {
+    background-color: #e0a800;
+    border-color: #d39e00;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(255, 193, 7, 0.3);
+}
+
+/* Delete Button (Danger - Red) */
+.action-btn.delete-btn {
+    background-color: #dc3545;
+    /* Red */
+    color: #fff;
+    border-color: #dc3545;
+}
+
+.action-btn.delete-btn:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(220, 53, 69, 0.3);
+}
+
+/* Block/Unblock User Button (Toggle - Dark Gray/Primary) */
+.action-btn.block-btn {
+    background-color: #6c757d;
+    /* Gray for Block */
+    color: #fff;
+    border-color: #6c757d;
+}
+
+.action-btn.block-btn:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(108, 117, 125, 0.3);
+}
+/* Report Button (Secondary - Light Gray) */
+.action-btn.report-btn {
+    background-color: #f8f9fa;   
+    color: #333;
+    border-color: #ced4da;
+}
+
+.action-btn.report-btn:hover {
+    background-color: #e2e6ea;
+    border-color: #dae0e5;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(248, 249, 250, 0.3);
+}
+
+/* Disable state for buttons */
+.action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 576px) {
+    .tab-button {
+        flex-grow: 1;     
+        text-align: center;
+        margin-right: 0;
+        border-radius: 0;
+        border-bottom-left-radius: 5px;
+        border-bottom-right-radius: 5px;
+    }
+
+    .tabs {
+        flex-direction: column;
+    }
+
+    .tab-button.active {
+        border-bottom: none;      
+        border-left: 3px solid #007bff;      
+        padding-left: 17px;
+    }
+
+    .tab-button:first-child {
+        border-top-left-radius: 5px;
+        border-top-right-radius: 5px;
+    }
+
+    .tab-button:last-child {
+        border-bottom-left-radius: 5px;
+        border-bottom-right-radius: 5px;
+    }
+}
