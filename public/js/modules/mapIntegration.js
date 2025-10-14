@@ -14,10 +14,20 @@ export let currentRadius = 50; // Default radius in kilometers
 // 1. SETUP: _MAPBOX_ACCESS_TOKEN
 mapboxgl.accessToken = 'pk.eyJ1IjoiYmVubnlqYXk0ciIsImEiOiJjbWdmc2U1bjIwNDI2Mmxxd3dxenZ3YXZrIn0.tlg41JkXB6vso-2GvX5y1g';
 
-// Global map instance
+// Global map instance (module-scoped)
 let map; 
 let allMarkers = {}; // Global store for all Mapbox marker objects
-let filterCenterMarker = null; // 💡 Moved global state variable here
+let filterCenterMarker = null; 
+
+//  NEW EXPORTED SETTER FUNCTION 
+/**
+ * Allows other modules (like jobFeed.js) to set the initialized map object.
+ * @param {mapboxgl.Map} mapInstance - The created map object.
+ */
+export function setMapInstance(mapInstance) {
+    map = mapInstance; // Set the module-scoped map variable
+}
+
 
 /**
  * Helper function to determine coordinates from job data.
@@ -40,31 +50,33 @@ function getJobCoordinates(job) {
 
 /**
  * Initializes the Mapbox map in the specified container.
+ * @returns {mapboxgl.Map} The created map instance.
  */
 export function initializeMap(containerId, jobs) {
-    if (map) return map; // Return existing map instance
+    if (map) return map; 
 
-    // FIX: Assign to the global 'map' variable, don't redeclare with 'const'
+    //  Start map in a 2D view (pitch: 0, bearing: 0) 
+    // to make the 'View HQ in 3D' button a true action/toggle.
     map = new mapboxgl.Map({
         container: containerId, // Use the passed containerId
         style: 'mapbox://styles/mapbox/standard', 
         center: [3.42, 6.44], // Center on Lagos Island/Victoria Island
-        zoom: 15,
-        pitch: 65, // Maximize the 3D building view
-        bearing: 15 
+        zoom: 10, // Zoomed out for a broader job feed view
+        pitch: 0, //  2D View
+        bearing: 0 //  No rotation
     });
 
+    // CRITICAL: Ensure NavigationControl is added (includes the default 3D/North buttons)
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
     map.on('load', () => {
         // Plot markers on initial load
         plotJobMarkers(jobs);
         
-        // FIX: Add 3D Terrain logic inside 'load' or 'style.load' listener
-        // The Mapbox Standard style is fully loaded here, safe to add terrain
+        // Add 3D Terrain logic inside 'load' or 'style.load' listener
         map.addSource('mapbox-dem', { 
             'type': 'raster-dem',
-            'url': 'mapbox://mapbox.mapbox-terrain-dem-v1', // The elevation data source
+            'url': 'mapbox://mapbox.mapbox-terrain-dem-v1', 
             'tileSize': 512,
             'maxzoom': 14
         });
@@ -138,7 +150,7 @@ export function plotJobMarkers(jobs) {
  */
 export function flyToJobLocation(jobId) {
     const marker = allMarkers[jobId];
-    if (marker) {
+    if (marker && map) { // Added check for map safety
         const coordinates = marker.getLngLat();
         // Fly to location without changing zoom significantly, just a nudge
         map.flyTo({ center: coordinates, speed: 0.5 });
@@ -147,7 +159,7 @@ export function flyToJobLocation(jobId) {
 
 
 // -----------------------------------------------------------
-// --- GEOLOCATION HELPER ---
+// --- GEOLOCATION HELPER (No changes) ---
 // -----------------------------------------------------------
 
 /**
@@ -156,7 +168,7 @@ export function flyToJobLocation(jobId) {
 export function getCurrentLocation() {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
-            alert('Geolocation is not supported by your browser.');
+            console.error('Geolocation is not supported by your browser.');
             return resolve(null);
         }
 
@@ -167,7 +179,8 @@ export function getCurrentLocation() {
             },
             (error) => {
                 console.error("Geolocation Error:", error);
-                alert("Could not get your location. Using default map center.");
+                //  Alert replaced with console.error 
+                console.error("Could not get your location. Using default map center.");
                 resolve(null);
             },
             { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
@@ -177,7 +190,7 @@ export function getCurrentLocation() {
 
 
 // -----------------------------------------------------------
-// --- HAVERSINE DISTANCE CALCULATION ---
+// --- HAVERSINE DISTANCE CALCULATION (No changes) ---
 // -----------------------------------------------------------
 
 /**
@@ -220,19 +233,18 @@ export function isJobInRadius(job) {
 
 /**
  * Executes a dramatic 3D fly-over animation to a specific standout location.
- * @param {Array<number>} coordinates - The target location [lng, lat].
  */
 export function flyToStandoutLocation(coordinates) {
     if (!map || !coordinates) return;
 
     map.flyTo({
         center: coordinates,
-        zoom: 16,        // Closer zoom to highlight the immediate area
-        pitch: 75,        // Very high pitch (tilt) for a dramatic 3D view
-        bearing: 45,       // Rotates the map for a dynamic fly-in
-        speed: 0.4,        // Slower speed for a smoother, more cinematic feel
-        curve: 1.5,        // Slightly increased curve for a more dramatic arc
-        duration: 3000,    // Total animation time in milliseconds (3 seconds)
+        zoom: 16, 
+        pitch: 75, 
+        bearing: 45, 
+        speed: 0.4, 
+        curve: 1.5, 
+        duration: 3000, 
         essential: true
     });
 }
@@ -245,18 +257,16 @@ export function resetMapView() {
 
     map.flyTo({
         center: [3.42, 6.44], // Focus back on Lagos Island/Victoria Island (or a city-wide default)
-        zoom: 10,              // Zoom out to a city-wide level
-        pitch: 0,              // Crucially, set the pitch back to 0 (top-down view)
-        bearing: 0,            // Remove any rotation
-        speed: 0.8,            // Quick but smooth transition
-        duration: 1500        // 1.5 second animation
+        zoom: 10, // Match the initial zoom level
+        pitch: 0, // Crucially, set the pitch back to 0 (top-down view)
+        bearing: 0, // Remove any rotation
+        speed: 0.8, 
+        duration: 1500 
     });
 }
 
 /**
  * Renders a marker at the current filterCenter and flies the map to it.
- * @param {[number, number]} coordinates - The new center coordinates [lng, lat].
- * @param {boolean} shouldFly - If true, flies the map to the coordinates.
  */
 export function updateMapFilterCenter(coordinates, shouldFly = true) {
     if (!map) return;
@@ -272,7 +282,7 @@ export function updateMapFilterCenter(coordinates, shouldFly = true) {
     
     // 3. Create a new, distinct marker for the filter center
     const el = document.createElement('div');
-    el.className = 'filter-center-marker'; // Use a distinct class for styling (e.g., a blue dot)
+    el.className = 'filter-center-marker'; 
     el.innerHTML = '<i class="fas fa-crosshairs" style="color: var(--color-primary); font-size: 24px;"></i>';
 
     filterCenterMarker = new mapboxgl.Marker(el)
@@ -290,9 +300,8 @@ export function updateMapFilterCenter(coordinates, shouldFly = true) {
 
 /**
  * EXPORTED helper to reset filter state
- * Overrides the original placeholder function to also handle map state.
  */
-export function resetFilterCenter() { // 💡 THIS IS NOW THE ONLY DEFINITION
+export function resetFilterCenter() { 
     filterCenter = LOCATION_COORDINATES['lagos'];
     currentRadius = 50; // Reset radius value
     
@@ -303,4 +312,23 @@ export function resetFilterCenter() { // 💡 THIS IS NOW THE ONLY DEFINITION
     
     // Reset the map to the default view
     resetMapView(); 
+}
+
+
+
+/**
+ * Executes the "View HQ in 3D" action, flying the map to Lagos (HQ) with a 3D pitch.
+ */
+export function viewHQIn3D() {
+    if (map) { 
+        map.flyTo({
+            center: LOCATION_COORDINATES.lagos, 
+            zoom: 15, 
+            pitch: 65, // Use a high pitch for 3D view
+            bearing: 15,
+            duration: 1800 
+        });
+    } else {
+        console.error("Map not initialized. Cannot view HQ in 3D.");
+    }
 }

@@ -1,10 +1,21 @@
-// public/js/modules/jobFeed.js (FINAL CORRECTED VERSION)
+// public/js/modules/jobFeed.js
 
 // Import all required functions
 import { setupFilterControls, applyFilters } from "./filterControls.js"; 
-import { getAllJobs, deleteJob, auth, isUserAdmin } from "../services/firebaseService.js"; 
+import { 
+    getAllJobs, 
+    deleteJob, 
+    auth, 
+    isUserAdmin,    
+    isJobSaved, 
+    saveJob, 
+    unsaveJob 
+} from "../services/firebaseService.js"; 
+
+// NOTE: Map Imports 
 import { 
     initializeMap, 
+    setMapInstance, //  Ensure setMapInstance is imported
     flyToJobLocation, 
     getCurrentLocation, 
     filterCenter, 
@@ -12,12 +23,13 @@ import {
     LOCATION_COORDINATES 
 } from "./mapIntegration.js"; 
 
-let mapInstance;
+
+// let mapInstance; //
 // Global flag to cache admin status
 let isAdmin = false; 
 
 // -----------------------------------------------------------
-// --- JOB CARD HELPERS ---
+// --- JOB CARD HELPERS (No changes) ---
 // -----------------------------------------------------------
 
 function truncateDescription(description, maxWords = 15) {
@@ -30,7 +42,7 @@ function truncateDescription(description, maxWords = 15) {
 }
 
 // -----------------------------------------------------------
-// --- RADIUS LISTENERS ---
+// --- RADIUS LISTENERS (No changes) ---
 // -----------------------------------------------------------
 
 function setupRadiusListeners(jobListContainer) {
@@ -75,7 +87,7 @@ function setupRadiusListeners(jobListContainer) {
 }
 
 // -----------------------------------------------------------
-// --- DELETE BUTTON VISIBILITY LOGIC (CORRECTED) ---
+// --- DELETE BUTTON VISIBILITY LOGIC (No changes) ---
 // -----------------------------------------------------------
 
 /**
@@ -88,12 +100,12 @@ function shouldShowDeleteButton(job, currentIsAdmin) {
         return false;
     }
     
-    // ✅ FIX: Allow delete if the user is an admin
+    //  Allow delete if the user is an admin
     if (currentIsAdmin === true) { 
         return true;
     }
 
-    // ✅ FIX: Allow delete if the user created the job (ownership)
+    //  Allow delete if the user created the job (ownership)
     const currentUserUid = auth.currentUser.uid;
     const jobCreatorUid = job.createdBy; 
 
@@ -141,12 +153,33 @@ export function createJobCardHTML(job, currentIsAdmin) {
                         transition: color 0.2s ease;
                     "
                     onmouseover="this.style.color='#FF4444'" 
-                    onmouseout="this.style.color='#ccc'"   
+                    onmouseout="this.style.color='#ccc'"   
             >
                 🗑️
             </button>
         `;
     }
+    
+    // --- ADDED FAVORITES BUTTON HTML ---
+    // Note: data-is-saved="false" is the initial state, updated by JS listener
+    const saveButtonHTML = auth.currentUser ? 
+        `
+        <button class="save-job-btn-card" 
+                data-job-id="${job.id}"
+                data-is-saved="false"
+                title="Save this job to your favorites"
+                style="
+                    position: absolute; top: 10px; right: ${showDeleteButton ? '50px' : '10px'}; 
+                    padding: 5px 8px; font-size: 0.8rem; background: #f0f4f8; color: var(--color-dark);
+                    border: 1px solid #ccc; border-radius: 4px; cursor: pointer; z-index: 10;
+                    transition: all 0.2s ease;
+                "
+                onmouseover="this.style.backgroundColor='#ddd'" 
+                onmouseout="this.style.backgroundColor='#f0f4f8'"
+        >
+            <i class="far fa-bookmark"></i> Save
+        </button>
+        ` : '';
 
     return `
         <a href="#details/${job.id}" 
@@ -156,8 +189,7 @@ export function createJobCardHTML(job, currentIsAdmin) {
             style="position: relative; padding-top: ${showDeleteButton ? '35px' : '15px'};"> 
             
             ${deleteButtonHTML}
-
-            <h3 class="job-card-title">${job.title}</h3>
+            ${saveButtonHTML}   <h3 class="job-card-title">${job.title}</h3>
             <p class="job-card-info">${companyName}</p>
             
             <p class="job-card-summary">${summary}</p> 
@@ -177,7 +209,7 @@ export function createJobCardHTML(job, currentIsAdmin) {
 }
     
 // -----------------------------------------------------------
-// --- SEARCH AND DELETE LISTENERS ---
+// --- SEARCH AND DELETE LISTENERS (No changes) ---
 // -----------------------------------------------------------
 
 function setupSearchListener() {
@@ -214,8 +246,7 @@ function setupDeleteJobListener(jobListContainer) {
             const jobTitleElement = jobCard ? jobCard.querySelector('.job-card-title') : null;
             const jobTitle = jobTitleElement ? jobTitleElement.textContent : 'Unknown Job';
 
-            // NOTE: Replaced confirm() with console error/warning as confirm() is not allowed.
-            // In a real app, this would be a custom modal UI.
+            //  Replaced confirm() with console error/warning as confirm() is not allowed.
             console.warn(`Attempting to delete job: "${jobTitle}" (${jobId}). No confirmation UI is available here.`);
             
             const confirmed = true; // For now, assume confirmation in the absence of a modal. 
@@ -229,7 +260,7 @@ function setupDeleteJobListener(jobListContainer) {
                 
                 await deleteJob(jobId);
                 
-                // NOTE: Replaced alert() with console.log as alert() is not allowed.
+                //  Replaced alert() with console.log as alert() is not allowed.
                 console.log(`Job "${jobTitle}" deleted successfully.`);
                 
                 // Pass isAdmin status
@@ -237,7 +268,7 @@ function setupDeleteJobListener(jobListContainer) {
                 
             } catch (error) {
                 console.error("Deletion failed:", error);
-                // NOTE: Replaced alert() with console.error.
+                //  Replaced alert() with console.error.
                 console.error("Failed to delete job. Check console for details. (Possible permission issue)");
             } finally {
                 deleteButton.disabled = false;
@@ -249,35 +280,128 @@ function setupDeleteJobListener(jobListContainer) {
 
 function setupCardMapListeners() {
     const jobListContainer = document.getElementById('job-list');
-    const mapContainer = document.getElementById('map-container'); // Get the map container
+    const mapContainer = document.getElementById('map-container'); 
     
     if (!jobListContainer || !mapContainer) return;
 
-    const jobCards = jobListContainer.querySelectorAll('.job-card'); 
-    jobCards.forEach(card => {
-        const jobId = card.dataset.jobId;
+    // Use delegation on the job list container
+    jobListContainer.addEventListener('mouseenter', (event) => {
+        
+        //  Only proceed if the event target is the job title or within it.
+        const jobTitleElement = event.target.closest('.job-card-title');
 
-        card.addEventListener('mouseenter', () => {
+        if (jobTitleElement) {
+            
+            // Find the parent job card to get the ID
+            const card = jobTitleElement.closest('.job-card');
+            if (!card) return; // Should not happen if jobTitleElement exists
+
+            const jobId = card.dataset.jobId;
+
             // 1. Fly to the job location
             flyToJobLocation(jobId);
 
             // 2. Scroll the map container into view if it's off the top of the screen
             const mapRect = mapContainer.getBoundingClientRect();
             
-            // Check if the map's bottom edge is above the top of the viewport (i.e., scrolled up)
             if (mapRect.bottom < 0) {
-                // Scroll the nearest edge of the map into view smoothly
                 mapContainer.scrollIntoView({ 
                     behavior: 'smooth', 
-                    block: 'nearest' // Scrolls to the nearest edge (top or bottom)
+                    block: 'start' // Scrolls to the top of the map container
                 });
             }
+        }
+    }, true); 
+}
+
+
+// -----------------------------------------------------------
+// --- FAVORITES LISTENERS (No changes) ---
+// -----------------------------------------------------------
+
+/**
+ * Updates the UI of a single save button on a job card.
+ * @param {HTMLElement} button - The button element.
+ * @param {boolean} isSaved - The saved state.
+ */
+export function updateCardSaveButtonUI(button, isSaved) { 
+    if (isSaved) {
+        button.dataset.isSaved = 'true';
+        button.innerHTML = `<i class="fas fa-bookmark"></i> Saved`;
+        // Apply primary button styles for 'Saved' state
+        button.style.color = 'white';
+        button.style.backgroundColor = 'var(--color-primary, #007bff)';
+        button.style.borderColor = 'var(--color-primary, #007bff)';
+        button.onmouseover = "this.style.backgroundColor='var(--color-primary-dark, #0056b3)'";
+        button.onmouseout = "this.style.backgroundColor='var(--color-primary, #007bff)'";
+    } else {
+        button.dataset.isSaved = 'false';
+        button.innerHTML = `<i class="far fa-bookmark"></i> Save`;
+        // Reset to secondary/default styles
+        button.style.color = 'var(--color-dark)';
+        button.style.backgroundColor = '#f0f4f8';
+        button.style.borderColor = '#ccc';
+        button.onmouseover = "this.style.backgroundColor='#ddd'";
+        button.onmouseout = "this.style.backgroundColor='#f0f4f8'";
+    }
+}
+
+/**
+ * Sets up initial saved state and click listener for all save buttons.
+ */
+function setupSaveJobListener(jobListContainer) {
+    // 1. Initial State Check (if user is logged in) - only for buttons currently in DOM
+    if (auth.currentUser) {
+        jobListContainer.querySelectorAll('.save-job-btn-card').forEach(button => {
+            const jobId = button.dataset.jobId;
+            // IIFE for immediate async check
+            (async () => {
+                const isSaved = await isJobSaved(jobId);
+                updateCardSaveButtonUI(button, isSaved);
+            })();
         });
+    }
+
+    // 2. Click Listener Delegation
+    jobListContainer.addEventListener('click', async (event) => {
+        const saveButton = event.target.closest('.save-job-btn-card');
+
+        if (saveButton) {
+            event.preventDefault(); 
+            event.stopPropagation();
+            
+            if (!auth.currentUser) {
+                // NOTE: Replacing alert()
+                console.warn("User needs to be logged in to save jobs.");
+                return;
+            }
+
+            const jobId = saveButton.dataset.jobId;
+            const isCurrentlySaved = saveButton.dataset.isSaved === 'true';
+
+            try {
+                saveButton.disabled = true; // Disable while processing
+                if (isCurrentlySaved) {
+                    await unsaveJob(jobId);
+                    updateCardSaveButtonUI(saveButton, false);
+                    console.log(`Job ${jobId} unsaved.`);
+                } else {
+                    await saveJob(jobId);
+                    updateCardSaveButtonUI(saveButton, true);
+                    console.log(`Job ${jobId} saved.`);
+                }
+            } catch (error) {
+                console.error("Error toggling save status on job card:", error);
+            } finally {
+                saveButton.disabled = false; // Re-enable
+            }
+        }
     });
 }
 
+
 // -----------------------------------------------------------
-// --- RENDER MAIN FEED ---
+// --- RENDER MAIN FEED (CRITICAL FIX APPLIED) ---
 // -----------------------------------------------------------
 
 /**
@@ -363,9 +487,20 @@ export async function renderJobFeed(containerElement) {
             </div>
         </div>
         
-        <div id="map-container" class="map-container-card">
-            <div id="job-map" style="width: 100%; height: 400px; border-radius: 8px;"></div>
+    
+        <div id="map-container" class="map-container-card" 
+            style="position: relative; z-index: 10;">
+            <div id="job-map" 
+                style="
+                    width: 100%; 
+                    height: 400px; 
+                    border-radius: 8px;
+                    /* Ensure the map and its internal controls stay on top */
+                    z-index: 10; 
+                ">
+            </div>
         </div>
+
         
         <div id="job-list">
             <p style="text-align: center; padding: 2rem;">Loading jobs...</p>
@@ -404,14 +539,19 @@ export async function renderJobFeed(containerElement) {
         }
         
         // 4. Initialize Map
-        mapInstance = initializeMap('job-map', jobs);
+
+        // mapInstance = initializeMap('job-map', jobs); //
+        const newlyCreatedMap = initializeMap('job-map', jobs); // Correctly declare and initialize
+        setMapInstance(newlyCreatedMap); //  Correctly share the instance with mapIntegration.js
 
         // 5. Attach all listeners after the HTML is in the DOM
         setupSearchListener();
         setupFilterControls(jobListContainer, isAdmin); 
-        setupCardMapListeners(); // <-- SCROLL LOGIC IS HERE
+        // NOTE: setupCardMapListeners is now delegation-based and excludes button clicks
+        setupCardMapListeners(); 
         setupRadiusListeners(jobListContainer); 
         setupDeleteJobListener(jobListContainer); 
+        setupSaveJobListener(jobListContainer); 
 
     } catch (error) {
         console.error("Error fetching jobs:", error);

@@ -3,7 +3,6 @@
 import { saveUserProfile } from "../services/firebaseService.js";
 import { auth } from "../services/firebaseConfig.js"; 
 import { updateAuthUI } from "./authUI.js"; 
-//  Import router from the parent main.js file
 import { router } from "../main.js";
 import { 
     GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut 
@@ -51,7 +50,7 @@ export function watchAuthStatus() {
             // Wait for user profile data to be saved/updated (CRITICAL AWAIT)
             await saveUserProfile(user); 
 
-            // 🔑 FIX: If the initial router run has completed, 
+            //  If the initial router run has completed, 
             // we must re-run the router now that the profile is saved.
             // This forces the feed to re-render, ensuring isUserAdmin() sees the correct status.
             if (hasRunInitialRouter) {

@@ -12,7 +12,7 @@ import {
     currentRadius 
 } from './mapIntegration.js';
 
-// --- Helper Functions (Unmodified) ---
+// --- Helper Functions  ---
 
 function parseSalaryValue(salaryString) {
     let norm = salaryString.toLowerCase().replace('+', '');
@@ -103,6 +103,7 @@ function getActiveFilters() {
  * @param {string} [searchTerm] - Optional term from the search box.
  * @param {boolean} isAdminStatusFromCaller - The admin status of the current user.
  */
+
 export async function applyFilters(jobListContainer, searchTerm = '', isAdminStatusFromCaller) {
     const activeFilters = getActiveFilters();
     
@@ -115,15 +116,34 @@ export async function applyFilters(jobListContainer, searchTerm = '', isAdminSta
         delete dbFilters.radiusApplied; 
         delete dbFilters.salary; 
 
-        if (Object.keys(dbFilters).length === 0 && searchTerm === '') {
-            jobs = await getAllJobs();
-        } else {
-            //  filterJobs only uses category/location for database query
+        // 1. Determine Fetch Strategy
+        //  If there is a search term OR if only salary/radius is applied, 
+        // we must fetch ALL jobs to ensure the client-side filtering has the complete data set.
+        const onlyCategoryAndLocationFilters = Object.keys(dbFilters).length > 0 && searchTerm === '';
+
+        if (onlyCategoryAndLocationFilters) {
+            // Only category/location filters exist. Use a more efficient DB query.
             jobs = await filterJobs(dbFilters); 
+        } else {
+            // Search term is active, or no filters, or only client-side filters (salary/radius).
+            // Fetch ALL jobs and rely on client-side filtering below.
+            jobs = await getAllJobs();
         }
         
-        // 2. Client-Side Filtering (Salary, Radius, and Search)
+        
+        // 2. Client-Side Filtering (NOW APPLIED TO ALL filters if we fetched all jobs)
         jobs = jobs.filter(job => {
+            
+            // --- 2a. Filter by Category & Location (Client-side, only if we fetched ALL jobs)
+            if (activeFilters.category && job.category !== activeFilters.category) {
+                 return false;
+            }
+            if (activeFilters.location && job.location !== activeFilters.location) {
+                 return false;
+            }
+
+
+            // --- 2b. Salary Filter 
             let salaryPass = true;
             
             if (activeFilters.salary) {
@@ -142,24 +162,26 @@ export async function applyFilters(jobListContainer, searchTerm = '', isAdminSta
                 }
             }
             
+            // --- 2c. Radius Filter 
             let radiusPass = true;
             if (activeFilters.radiusApplied) {
                 radiusPass = isJobInRadius(job);
             }
             
+            // --- 2d. Search Term Filter 
             let searchPass = true;
             if (searchTerm) {
                  const normTerm = searchTerm.toLowerCase();
                  searchPass = job.title.toLowerCase().includes(normTerm) ||
-                                 job.company.toLowerCase().includes(normTerm) ||
-                                 job.location.toLowerCase().includes(normTerm);
+                              job.company.toLowerCase().includes(normTerm) ||
+                              job.location.toLowerCase().includes(normTerm);
             }
 
             return salaryPass && radiusPass && searchPass;
         });
 
 
-        // 3. Final Rendering and Map Update
+        // 3. Final Rendering and Map Update 
         if (jobs.length === 0) {
             jobListContainer.innerHTML = '<p style="text-align: center; padding: 2rem; color: gray;">No results match your selected filters.</p>';
             plotJobMarkers([]); 
@@ -175,6 +197,7 @@ export async function applyFilters(jobListContainer, searchTerm = '', isAdminSta
         jobListContainer.innerHTML = `<p style="color: red; padding: 2rem;">Error applying filters. (Check console for database index warnings)</p>`;
     }
 }
+
 
 
 /**
@@ -194,7 +217,7 @@ export function setupFilterControls(jobListContainer, isAdmin) {
     // 1. Attach 'change' listeners to apply filters immediately upon selection
     filterElements.forEach(select => {
         select.addEventListener('change', () => {
-            // RE-IMPLEMENTED: Pass isAdmin status
+            //  Pass isAdmin status
             applyFilters(jobListContainer, null, isAdmin);
         });
     });
@@ -213,7 +236,7 @@ export function setupFilterControls(jobListContainer, isAdmin) {
             
             resetFilterCenter(); 
             
-            // RE-IMPLEMENTED: Pass isAdmin status
+            //  Pass isAdmin status
             applyFilters(jobListContainer, null, isAdmin); 
         });
     }

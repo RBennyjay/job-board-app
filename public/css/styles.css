@@ -369,8 +369,7 @@ body {
     }
 
     /* Show the Desktop Post button */
-    .desktop-post-btn {
-        /* display: block !important; */
+    .desktop-post-btn {       
         display: inline-flex;
     }
 
@@ -691,8 +690,7 @@ textarea:focus {
 }
 
 textarea {
-    resize: vertical;
-    /* Allow vertical resizing only */
+    resize: vertical;   
 }
 
 .help-text {
@@ -712,12 +710,11 @@ textarea {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
-    /* Space between columns */
+  
 }
 
 .form-row .half-width {
-    flex: 1 1 calc(50% - 0.5rem);
-    /* Two columns */
+    flex: 1 1 calc(50% - 0.5rem);   
 }
 
 .form-row .full-width {
@@ -736,8 +733,7 @@ textarea {
     }
 
     .form-row .half-width {
-        flex: 1 1 100%;
-        /* Stack columns on small screens */
+        flex: 1 1 100%;    
     }
 }
 
@@ -750,10 +746,8 @@ textarea {
     border: none;
     border-radius: 50%;
     cursor: pointer;
-    padding: 0;
-    /* Basic style—you can use a background image or icon */
-    background-color: #007bff;
-    /* Blue pin */
+    padding: 0;   
+    background-color: #007bff;  
     width: 15px;
     height: 15px;
     border: 3px solid #ffffff;
@@ -763,28 +757,25 @@ textarea {
 
 /* Style for the active/hovered job card */
 .job-card-active {
-    border-color: #007bff;
-    /* Match the pin color */
+    border-color: #007bff;    
     box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
     transform: translateY(-2px);
     transition: all 0.2s ease-in-out;
 }
 
 /* In your styles.css */
-.mobile-nav-links .mobile-nav-link-button {
-    /* Styles to make it look like a link/menu item */
+.mobile-nav-links .mobile-nav-link-button {   
     display: block;
     width: 100%;
     text-align: left;
     padding: 1rem 1.5rem;
-    /* Match the padding of other mobile links */
+   
     border: none;
     background: none;
     color: var(--color-dark);
-    /* Match text color */
+   
     font-family: inherit;
     font-size: 1.1rem;
-    /* Match font size */
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s;
@@ -792,7 +783,7 @@ textarea {
 
 .mobile-nav-links .mobile-nav-link-button:hover {
     background-color: var(--color-neutral, #f0f4f8);
-    /* Hover effect */
+    
 }
 
 /* Ensure the icon is visible */
