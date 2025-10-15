@@ -1,132 +1,136 @@
 // public/js/modules/favorites.js
 
 import { 
-    auth, 
-    getSavedJobIds, 
-    getJobById,
-    unsaveJob 
+  auth, 
+  getSavedJobIds, 
+  getJobById, 
+  unsaveJob 
 } from "../services/firebaseService.js";
-//  Ensure updateCardSaveButtonUI is imported
-import { createJobCardHTML, updateCardSaveButtonUI } from "./jobFeed.js"; 
 
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { createJobCardHTML, updateCardSaveButtonUI } from "./jobFeed.js";
 
 /**
- * Renders the "Your Favorite Jobs" page.
- * @param {HTMLElement} containerElement - The DOM element where content will be rendered.
+ * Renders the user's favorite jobs
+ * @param {HTMLElement} container - The main container to render the favorites list
  */
-export async function renderFavorites(containerElement) {
-    if (!auth.currentUser) {
-        containerElement.innerHTML = `
-            <h1 class="page-title">Your Favorite Jobs</h1>
-            <p style="text-align: center; padding: 2rem; color: var(--color-dark);">
-                You must be <a href="#login" style="color: var(--color-primary); font-weight: bold;">logged in</a> to view your saved jobs.
-            </p>
+export async function renderFavorites(container) {
+  const favoritesListContainer = document.createElement("div");
+  favoritesListContainer.className =
+    "favorites-list grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6";
+
+  container.innerHTML = `
+    <section class="favorites-section max-w-7xl mx-auto">
+      <h2 class="text-3xl font-bold mb-4 text-center">My Favorite Jobs</h2>
+    </section>
+  `;
+  container.appendChild(favoritesListContainer);
+
+  // Listen for authentication state
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      favoritesListContainer.innerHTML = `
+        <p class="text-center text-gray-500 py-8">
+          Please <a href="#login" class="text-blue-500 underline font-semibold">log in</a> 
+          to view your favorite jobs.
+        </p>
+      `;
+      return;
+    }
+
+    try {
+      const userId = user.uid;
+
+      // Step 1: Fetch saved job IDs for this user
+      const savedJobIds = await getSavedJobIds(userId);
+      if (!savedJobIds || savedJobIds.length === 0) {
+        favoritesListContainer.innerHTML = `
+          <p class="text-center text-gray-500 py-8">You haven’t saved any jobs yet.</p>
         `;
         return;
-    }
+      }
 
-    // Initial structure setup
-    containerElement.innerHTML = `
-        <h1 class="page-title">Your Favorite Jobs</h1>
-        <div id="favorites-list-container" style="display: flex; flex-direction: column; gap: 1.5rem;">
-            <p style="text-align: center; padding: 2rem;">Loading your saved jobs...</p>
-        </div>
-    `;
-
-    const favoritesListContainer = document.getElementById("favorites-list-container");
-    const userId = auth.currentUser.uid;
-    
-    try {
-        const savedJobIds = await getSavedJobIds(userId);
-
-        if (savedJobIds.length === 0) {
-            favoritesListContainer.innerHTML = `
-                <p style="text-align: center; padding: 2rem; color: gray;">
-                    You haven't saved any jobs yet. Start browsing the 
-                    <a href="#feed" style="color: var(--color-primary); font-weight: bold;">Job Feed</a>!
-                </p>
-            `;
-            return;
+      // Step 2: Fetch all jobs safely (handle missing or deleted ones)
+      const jobPromises = savedJobIds.map(async (id) => {
+        try {
+          return await getJobById(id);
+        } catch (err) {
+          console.warn(`⚠️ Skipping job ${id}:`, err.message);
+          return null;
         }
+      });
 
-        const jobPromises = savedJobIds.map(id => getJobById(id));
-        const jobs = (await Promise.all(jobPromises)).filter(job => job !== null);
+      const jobs = (await Promise.all(jobPromises)).filter((job) => job !== null);
 
-        if (jobs.length > 0) {
-            
-            const jobCardsHTML = jobs
-                .map(job => createJobCardHTML(job, false)) 
-                .join('');
-            
-            favoritesListContainer.innerHTML = jobCardsHTML;
-            
-            //  Manually set all button states to 'Saved' after rendering
-            favoritesListContainer.querySelectorAll('.save-job-btn-card').forEach(button => {
-                // Force the state to true since they are on the favorites page
-                updateCardSaveButtonUI(button, true); 
-            });
-
-            // 4. Set up the specific listener for unsaving jobs from this list
-            setupUnsaveJobListener(favoritesListContainer);
-        } else {
-            favoritesListContainer.innerHTML = `
-                <p style="text-align: center; padding: 2rem; color: gray;">
-                    The jobs you saved are no longer available.
-                </p>
-            `;
-        }
-    } catch (error) {
-        console.error("Error loading favorite jobs:", error);
+      // Step 3: Render results
+      if (jobs.length === 0) {
         favoritesListContainer.innerHTML = `
-            <p style="color: red; padding: 2rem; text-align: center;">
-                Error loading favorites. Please check your network connection.
-            </p>
+          <p class="text-center text-gray-500 py-8">
+            The jobs you saved are no longer available or visible.
+          </p>
         `;
+        return;
+      }
+
+      // ✅ Render each job card
+      jobs.forEach((job) => {
+        const jobHTML = createJobCardHTML(job, false);
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = jobHTML;
+        favoritesListContainer.appendChild(wrapper.firstElementChild);
+      });
+
+      // ✅ Mark all save buttons as active (saved)
+      favoritesListContainer.querySelectorAll(".save-job-btn-card").forEach((btn) => {
+        updateCardSaveButtonUI(btn, true);
+      });
+
+      // ✅ Attach unsave functionality
+      setupUnsaveJobListener(favoritesListContainer);
+
+    } catch (error) {
+      console.error("❌ Error loading favorite jobs:", error);
+      favoritesListContainer.innerHTML = `
+        <p class="text-center text-red-500 py-8">
+          There was an error loading your favorite jobs. Please try again later.
+        </p>
+      `;
     }
+  });
 }
 
 /**
- * Sets up the click listener to handle unsaving a job directly from the favorites list.
- * @param {HTMLElement} container - The container element (favoritesListContainer).
+ * Allows the user to remove a job from favorites directly on the page
  */
 function setupUnsaveJobListener(container) {
-    container.addEventListener('click', async (event) => {
-        //  The button is the .save-job-btn-card, which acts as the unsave button here.
-        const unsaveButton = event.target.closest('.save-job-btn-card');
+  container.addEventListener("click", async (event) => {
+    const unsaveButton = event.target.closest(".save-job-btn-card");
 
-        // Check if the button is present AND currently marked as saved
-        if (unsaveButton && unsaveButton.dataset.isSaved === 'true') { 
-            event.preventDefault(); 
-            event.stopPropagation();
-            
-            const jobId = unsaveButton.dataset.jobId;
+    if (unsaveButton && unsaveButton.dataset.isSaved === "true") {
+      event.preventDefault();
+      const jobId = unsaveButton.dataset.jobId;
 
-            try {
-                unsaveButton.disabled = true;
-                
-                // Unsave the job
-                await unsaveJob(jobId);
-                console.log(`Job ${jobId} unsaved from favorites.`);
-                
-                // Remove the job card from the DOM (visual effect)
-                const jobCard = unsaveButton.closest('.job-card');
-                if (jobCard) {
-                    jobCard.style.opacity = '0';
-                    jobCard.style.transition = 'opacity 0.3s ease, max-height 0.3s ease';
-                    jobCard.style.maxHeight = '0';
+      try {
+        unsaveButton.disabled = true;
+        await unsaveJob(jobId);
+        console.log(`✅ Job ${jobId} unsaved successfully.`);
 
-                    setTimeout(() => {
-                        jobCard.remove();
-                        // Re-render the list if it becomes empty
-                        if (container.children.length === 0) {
-                            renderFavorites(document.getElementById("app-container"));
-                        }
-                    }, 300);
-                }
-            } catch (error) {
-                console.error("Error unsaving job from favorites list:", error);
-                unsaveButton.disabled = false;
-            }
+        const jobCard = unsaveButton.closest(".job-card");
+        if (jobCard) {
+          jobCard.style.opacity = "0";
+          jobCard.style.transition = "opacity 0.3s ease, max-height 0.3s ease";
+          jobCard.style.maxHeight = "0";
+          setTimeout(() => jobCard.remove(), 300);
         }
-    });
+
+        if (container.querySelectorAll(".job-card").length === 0) {
+          renderFavorites(document.getElementById("app-container"));
+        }
+      } catch (error) {
+        console.error("❌ Error unsaving job:", error);
+        unsaveButton.disabled = false;
+        alert("Failed to remove from favorites. Please try again.");
+      }
+    }
+  });
 }

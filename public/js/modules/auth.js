@@ -20,7 +20,7 @@ export async function googleLogin() {
         console.log("Google login success:", result.user.email);
         return result.user;
     } catch (error) {
-        console.error("Google login failed:", error.message);
+        console.error("❌ Google login failed:", error.message);
         return null;
     }
 }
@@ -28,12 +28,10 @@ export async function googleLogin() {
 // --- Google Sign-out ---
 export async function googleSignOut() {
     try {
-        //  Clear cached admin status before signing out
+        // Clear cached admin status before signing out
         clearAdminCache();
-
         await signOut(auth);
         console.log("✅ User signed out successfully.");
-
         // UI update handled automatically by onAuthStateChanged
     } catch (error) {
         console.error("❌ Sign out failed:", error.message);
@@ -45,18 +43,26 @@ export function watchAuthStatus() {
     let hasRunInitialRouter = false;
 
     onAuthStateChanged(auth, async (user) => {
-        //  Update the UI (ensures admin button toggles correctly)
+        // Update the UI (ensures admin button toggles correctly)
         await updateAuthUI(user);
 
         if (user) {
             console.log("✅ Logged in as:", user.email);
 
-            // Save or update the user profile in Firestore
-            await saveUserProfile(user);
+            try {
+                // Save or update the user profile in Firestore
+                await saveUserProfile(user);
+            } catch (error) {
+                if (error.code === "permission-denied") {
+                    console.warn("⚠️ Firestore permission denied when saving user profile. Check rules or fields in saveUserProfile().");
+                } else {
+                    console.error("❌ Error saving user profile:", error);
+                }
+            }
 
             // Force reroute after saving profile to stabilize admin visibility
             if (hasRunInitialRouter) {
-                console.log("Forcing re-route after profile save to stabilize admin status.");
+                console.log("🔁 Forcing re-route after profile save to stabilize admin status.");
                 router();
             }
         } else {
@@ -71,7 +77,7 @@ export function watchAuthStatus() {
         // Run router once on initial load
         if (!hasRunInitialRouter) {
             hasRunInitialRouter = true;
-            console.log("Initial router run.");
+            console.log("🚀 Initial router run.");
             router();
         }
     });

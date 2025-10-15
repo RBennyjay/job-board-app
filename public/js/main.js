@@ -196,7 +196,7 @@ function setupNavLinks() {
   });
 }
 
-// 🛑 REMOVED: loadUsersForManagement and setupAdminTabs logic belongs in modules/admin.js
+
 
 // --- Initialize App ---
 async function initializeApp() {
