@@ -220,7 +220,7 @@ export async function blockUser(userId) {
 }
 
 // ================================================================
-// ⭐ FAVORITES SERVICES
+//  FAVORITES SERVICES
 // ================================================================
 export async function isJobSaved(jobId) {
   if (!auth.currentUser) return false;
