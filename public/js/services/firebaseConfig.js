@@ -3,9 +3,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-//  Import getFunctions if one plans to use it here for initialization
-// (though it was imported in firebaseService.js, it's good practice to keep it if needed later)
-// import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
+
 
 
 // Web app's Firebase configuration
@@ -23,5 +21,3 @@ export const app = initializeApp(firebaseConfig); //  Ensure 'app' is a named ex
 export const db = getFirestore(app);
 export const auth = getAuth(app); 
 
-//  REMOVED: export default app; 
-// The named export 'export const app' above fulfills the dependency requirement.

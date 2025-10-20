@@ -1,6 +1,5 @@
 // public/js/modules/jobDetails.js
 
-//  Add  imports for Auth and the new Favorites Service functions
 import { getJobById, isJobSaved, saveJob, unsaveJob } from "../services/firebaseService.js";
 import { auth } from "../services/firebaseConfig.js"; 
 

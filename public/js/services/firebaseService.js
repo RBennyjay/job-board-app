@@ -21,7 +21,7 @@ import {
 const JOBS_COLLECTION = "jobs";
 
 // ================================================================
-// 🧩 USER PROFILE SERVICE
+//  USER PROFILE SERVICE
 // ================================================================
 export async function saveUserProfile(user) {
   try {
@@ -54,7 +54,7 @@ export async function saveUserProfile(user) {
 }
 
 // ================================================================
-// 💼 JOB DATA SERVICES
+//  JOB DATA SERVICES
 // ================================================================
 export async function addJob(jobData) {
   const titleLower = jobData.title ? jobData.title.toLowerCase() : "";
@@ -135,7 +135,7 @@ export async function getJobById(jobId) {
 }
 
 // ================================================================
-// 🛠️ ADMIN JOB MODERATION
+//  ADMIN JOB MODERATION
 // ================================================================
 export async function getJobsForAdmin() {
   const jobsCollection = collection(db, JOBS_COLLECTION);
@@ -154,7 +154,7 @@ export async function updateJobStatus(jobId, status) {
 }
 
 // ================================================================
-// 🔐 ADMIN / PERMISSION SERVICES (CACHED)
+// ADMIN / PERMISSION SERVICES (CACHED)
 // ================================================================
 export async function isUserAdmin() {
   if (!auth.currentUser) {
@@ -202,7 +202,7 @@ export function clearAdminCache() {
 }
 
 // ================================================================
-// 👥 ADMIN USER MANAGEMENT (DEMO PLACEHOLDER)
+//  ADMIN USER MANAGEMENT (DEMO PLACEHOLDER)
 // ================================================================
 export async function getAllUsers() {
   console.warn("ADMIN UI: Using placeholder data for demo.");

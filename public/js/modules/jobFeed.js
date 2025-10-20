@@ -249,7 +249,7 @@ function setupDeleteJobListener(jobListContainer) {
             //  Replaced confirm() with console error/warning as confirm() is not allowed.
             console.warn(`Attempting to delete job: "${jobTitle}" (${jobId}). No confirmation UI is available here.`);
             
-            const confirmed = true; // For now, assume confirmation in the absence of a modal. 
+            const confirmed = true; // assume confirmation in the absence of a modal. 
             
             if (!confirmed) {
                 return;
@@ -547,7 +547,7 @@ export async function renderJobFeed(containerElement) {
         // 5. Attach all listeners after the HTML is in the DOM
         setupSearchListener();
         setupFilterControls(jobListContainer, isAdmin); 
-        // NOTE: setupCardMapListeners is now delegation-based and excludes button clicks
+        //  setupCardMapListeners is now delegation-based and excludes button clicks
         setupCardMapListeners(); 
         setupRadiusListeners(jobListContainer); 
         setupDeleteJobListener(jobListContainer); 

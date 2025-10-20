@@ -118,7 +118,7 @@ export async function applyFilters(jobListContainer, searchTerm = '', isAdminSta
 
         // 1. Determine Fetch Strategy
         //  If there is a search term OR if only salary/radius is applied, 
-        // we must fetch ALL jobs to ensure the client-side filtering has the complete data set.
+        // fetch ALL jobs to ensure the client-side filtering has the complete data set.
         const onlyCategoryAndLocationFilters = Object.keys(dbFilters).length > 0 && searchTerm === '';
 
         if (onlyCategoryAndLocationFilters) {
@@ -131,7 +131,7 @@ export async function applyFilters(jobListContainer, searchTerm = '', isAdminSta
         }
         
         
-        // 2. Client-Side Filtering (NOW APPLIED TO ALL filters if we fetched all jobs)
+        // 2. Client-Side Filtering (NOW APPLIED TO ALL filters if all jobs are  fetched )
         jobs = jobs.filter(job => {
             
             // --- 2a. Filter by Category & Location (Client-side, only if we fetched ALL jobs)

@@ -72,7 +72,7 @@ export async function renderFavorites(container) {
         return;
       }
 
-      // ✅ Render each job card
+      //  Render each job card
       jobs.forEach((job) => {
         const jobHTML = createJobCardHTML(job, false);
         const wrapper = document.createElement("div");
@@ -80,12 +80,12 @@ export async function renderFavorites(container) {
         favoritesListContainer.appendChild(wrapper.firstElementChild);
       });
 
-      // ✅ Mark all save buttons as active (saved)
+      //  Mark all save buttons as active (saved)
       favoritesListContainer.querySelectorAll(".save-job-btn-card").forEach((btn) => {
         updateCardSaveButtonUI(btn, true);
       });
 
-      // ✅ Attach unsave functionality
+      //  Attach unsave functionality
       setupUnsaveJobListener(favoritesListContainer);
 
     } catch (error) {
